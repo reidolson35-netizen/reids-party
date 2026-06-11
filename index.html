@@ -101,9 +101,6 @@ body{
   text-shadow:0 0 14px rgba(111,154,216,.6);
   text-transform:uppercase;margin:0 0 18px 4px;
 }
-.chips{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 22px 4px}
-.chip{font:italic 700 12px 'Archivo';letter-spacing:.22em;color:var(--yellow);text-shadow:0 0 10px rgba(246,218,126,.5);text-transform:uppercase}
-.chip + .chip::before{content:'·';color:var(--muted);margin-right:14px;text-shadow:none}
 .introCopy{font:italic 500 17px/1.6 'Archivo';color:var(--muted);max-width:520px;margin:0 0 34px 4px}
 
 /* ---------- question ---------- */
@@ -305,9 +302,6 @@ function buildIntro(){
   lp.appendChild(el('div','logo',"Reid&rsquo;s&nbsp;Party"));
   s.appendChild(lp);
   s.appendChild(el('div','subTitle','Application'));
-  var chips = el('div','chips');
-  ['Invite only','No fee','18+'].forEach(function(c){ chips.appendChild(el('span','chip',c)); });
-  s.appendChild(chips);
   s.appendChild(el('p','introCopy','This should take 5&ndash;10 minutes. We want to know what kind of person you are. Our goal is to keep the room quality very high, without charging a fee. Please answer honestly.'));
   var b = el('button','btn','Apply');
   b.style.alignSelf = 'flex-start';
