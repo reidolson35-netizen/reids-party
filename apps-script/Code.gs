@@ -1,0 +1,198 @@
+/**
+ * REID'S PARTY — backend (Google Apps Script Web App)
+ *
+ * What it does:
+ *  - POST (no token): accepts an application, saves ID/images to a private
+ *    Drive folder, appends a row to a private Google Sheet, emails you.
+ *  - GET ?action=list&token=…: returns every application as JSON (admin page).
+ *  - POST {action:'setStatus', token, n, status}: updates a row's status.
+ *
+ * Deploy (one time, ~3 minutes):
+ *  1. Go to https://script.new
+ *  2. Delete the placeholder code, paste this whole file.
+ *  3. Set TOKEN below to your passcode (this is also the admin page passcode).
+ *  4. Deploy → New deployment → type: Web app
+ *       - Execute as: Me
+ *       - Who has access: Anyone
+ *     → Authorize when asked → copy the URL ending in /exec
+ *  5. Put that URL in config.js (ENDPOINT) on the site.
+ *
+ * The Sheet ("Reid's Party Applications") and the Drive folder
+ * ("Reid's Party Uploads") are created automatically on the first submission,
+ * in YOUR Drive, visible only to you.
+ */
+
+var TOKEN = 'PASTE_PASSCODE_HERE';   // ← set this. Also what you type into admin.html.
+var NOTIFY_EMAIL = true;             // email you on every new application
+var SHEET_NAME = "Reid's Party Applications";
+var FOLDER_NAME = "Reid's Party Uploads";
+var HEADERS = ['#','Timestamp','Status','Name','Age','Email','Phone','Socials',
+               'Why','Working On','Contrarian','Images','ID','User Agent'];
+
+/* ---------------- plumbing ---------------- */
+
+function json_(o){
+  return ContentService.createTextOutput(JSON.stringify(o))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSpreadsheet_(){
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('SPREADSHEET_ID');
+  if (id){
+    try { return SpreadsheetApp.openById(id); } catch (e) {}
+  }
+  var ss = SpreadsheetApp.create(SHEET_NAME);
+  var sh = ss.getSheets()[0];
+  sh.setName('Applications');
+  sh.appendRow(HEADERS);
+  sh.setFrozenRows(1);
+  props.setProperty('SPREADSHEET_ID', ss.getId());
+  return ss;
+}
+
+function getFolder_(){
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('FOLDER_ID');
+  if (id){
+    try { return DriveApp.getFolderById(id); } catch (e) {}
+  }
+  var folder = DriveApp.createFolder(FOLDER_NAME);
+  props.setProperty('FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function pad_(n){
+  n = String(n);
+  while (n.length < 3) n = '0' + n;
+  return n;
+}
+
+function splitLines_(v){
+  v = String(v || '').trim();
+  return v ? v.split('\n') : [];
+}
+
+/* ---------------- entrypoints ---------------- */
+
+function doGet(e){
+  var q = (e && e.parameter) || {};
+  if (q.action === 'list'){
+    if (q.token !== TOKEN) return json_({ok:false, error:'bad token'});
+    var sh = getSpreadsheet_().getSheets()[0];
+    var last = sh.getLastRow();
+    var rows = [];
+    if (last > 1){
+      var vals = sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
+      for (var i = 0; i < vals.length; i++){
+        var v = vals[i];
+        rows.push({
+          n: v[0], ts: v[1], status: v[2], name: v[3], age: v[4],
+          email: v[5], phone: String(v[6]).replace(/^'/, ''), socials: v[7],
+          why: v[8], working: v[9], contrarian: v[10],
+          images: splitLines_(v[11]), id_images: splitLines_(v[12])
+        });
+      }
+    }
+    return json_({ok:true, rows:rows});
+  }
+  return json_({ok:true, service:"reids-party"});
+}
+
+function doPost(e){
+  try{
+    var p = JSON.parse(e.postData.contents);
+    if (p.action === 'setStatus') return setStatus_(p);
+    return submit_(p);
+  } catch(err){
+    return json_({ok:false, error:'bad request: ' + err});
+  }
+}
+
+/* ---------------- handlers ---------------- */
+
+function submit_(p){
+  if (p.hp) return json_({ok:true, n:0});   // honeypot — silently swallow bots
+
+  var a = p.answers || {};
+  var required = ['email','name','socials','age','why','working','contrarian','phone'];
+  for (var i = 0; i < required.length; i++){
+    if (!String(a[required[i]] || '').trim()){
+      return json_({ok:false, error:'Missing required field: ' + required[i]});
+    }
+  }
+  var age = parseInt(a.age, 10);
+  if (!(age >= 18)) return json_({ok:false, error:'18+ only.'});
+  if (!p.id_images || !p.id_images.length) return json_({ok:false, error:'ID photo is required.'});
+  var why = String(a.why).trim();
+  if (why.length < 10 || why.length > 140) return json_({ok:false, error:'"Why" must be 10–140 characters.'});
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try{
+    var ss = getSpreadsheet_();
+    var sh = ss.getSheets()[0];
+    var n = sh.getLastRow();           // header is row 1 → first applicant is №1
+    var imgUrls = saveImages_(p.images || [], n, 'img', 5);
+    var idUrls  = saveImages_(p.id_images || [], n, 'id', 2);
+    sh.appendRow([
+      n, new Date(), 'PENDING',
+      String(a.name).trim(), age, String(a.email).trim(), "'" + String(a.phone).trim(),
+      String(a.socials).trim(), why, String(a.working).trim(), String(a.contrarian).trim(),
+      imgUrls.join('\n'), idUrls.join('\n'), String(p.ua || '')
+    ]);
+
+    if (NOTIFY_EMAIL){
+      try{
+        MailApp.sendEmail(
+          Session.getEffectiveUser().getEmail(),
+          'Party application №' + pad_(n) + ' — ' + a.name + ', ' + age,
+          'WHY:\n' + a.why + '\n\n' +
+          'WORKING ON:\n' + a.working + '\n\n' +
+          'CONTRARIAN:\n' + a.contrarian + '\n\n' +
+          'Socials: ' + a.socials + '\n' +
+          'Email: ' + a.email + '\n' +
+          'Phone: ' + a.phone + '\n\n' +
+          'Sheet: ' + ss.getUrl()
+        );
+      } catch(mailErr){ /* mail quota issues must never lose an application */ }
+    }
+    return json_({ok:true, n:n});
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveImages_(arr, n, tag, cap){
+  if (!arr || !arr.length) return [];
+  var folder = getFolder_();
+  var urls = [];
+  for (var i = 0; i < Math.min(arr.length, cap); i++){
+    var f = arr[i] || {};
+    var b64 = String(f.data || '');
+    if (b64.indexOf(',') >= 0) b64 = b64.split(',').pop();
+    if (!b64) continue;
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(b64),
+      f.type || 'image/jpeg',
+      pad_(n) + '-' + tag + '-' + (i + 1) + '.jpg'
+    );
+    urls.push(folder.createFile(blob).getUrl());
+  }
+  return urls;
+}
+
+function setStatus_(p){
+  if (p.token !== TOKEN) return json_({ok:false, error:'bad token'});
+  var allowed = ['PENDING','ACCEPTED','WAITLIST','REJECTED'];
+  if (allowed.indexOf(p.status) < 0) return json_({ok:false, error:'bad status'});
+  var sh = getSpreadsheet_().getSheets()[0];
+  var last = sh.getLastRow();
+  for (var r = 2; r <= last; r++){
+    if (String(sh.getRange(r, 1).getValue()) === String(p.n)){
+      sh.getRange(r, 3).setValue(p.status);
+      return json_({ok:true});
+    }
+  }
+  return json_({ok:false, error:'applicant not found'});
+}

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RP — Applications</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0b0c10">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0c10'/%3E%3Crect x='4' y='4' width='56' height='56' rx='12' fill='none' stroke='%23f6da7e' stroke-width='3'/%3E%3Ctext x='32' y='44' font-family='Arial Black,Arial' font-size='30' font-style='italic' font-weight='900' fill='%236f9ad8' text-anchor='middle'%3ERP%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500..900;1,500..900&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#0b0c10;
+  --blue:#6f9ad8;
+  --blue-dim:rgba(111,154,216,.45);
+  --yellow:#f6da7e;
+  --yellow-dim:rgba(246,218,126,.45);
+  --text:#eef1f7;
+  --muted:#8e97ab;
+  --bad:#e98c8c;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;
+  background:radial-gradient(1100px 700px at 50% -8%, #13151d 0%, var(--bg) 58%) fixed, var(--bg);
+  color:var(--text);
+  font-family:'Archivo',system-ui,sans-serif;
+  min-height:100dvh;
+}
+::selection{background:var(--yellow);color:#111}
+.wrap{max-width:860px;margin:0 auto;padding:28px 18px 80px}
+
+.np{border:2px solid var(--blue);border-radius:16px;box-shadow:0 0 14px rgba(111,154,216,.2), inset 0 0 20px rgba(111,154,216,.04)}
+.btn{
+  appearance:none;background:rgba(246,218,126,.04);border:2px solid var(--yellow);color:var(--yellow);
+  border-radius:11px;padding:12px 18px;font:italic 800 13px/1 'Archivo';letter-spacing:.16em;text-transform:uppercase;
+  cursor:pointer;box-shadow:0 0 12px rgba(246,218,126,.2);transition:.15s;touch-action:manipulation;
+}
+.btn:hover{box-shadow:0 0 20px rgba(246,218,126,.45)}
+.btn.ghost{border-color:var(--blue-dim);color:var(--blue);background:transparent;box-shadow:none}
+
+.logo{
+  font:italic 900 clamp(30px,7vw,44px)/1 'Archivo';color:var(--blue);
+  text-shadow:3px 3px 0 rgba(246,218,126,.92), 0 0 20px rgba(111,154,216,.45);
+}
+.sub{font:italic 800 11px 'Archivo';letter-spacing:.5em;color:var(--blue);text-transform:uppercase;margin-top:8px}
+.topRow{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px}
+.topBtns{display:flex;gap:10px}
+
+/* lock screen */
+#lock{max-width:430px;margin:18vh auto 0;padding:34px 28px;display:none;flex-direction:column;gap:18px}
+#lock.on{display:flex}
+#lock .logo{align-self:flex-start}
+.inp{
+  width:100%;background:#0a0c12;border:2px solid var(--blue-dim);border-radius:12px;color:var(--text);
+  font:italic 600 18px 'Archivo';padding:15px;outline:none;transition:.15s;
+}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 14px rgba(111,154,216,.3)}
+.err{font:italic 600 14px 'Archivo';color:var(--bad);min-height:18px}
+
+/* dashboard */
+#dash{display:none}
+#dash.on{display:block}
+.statRow{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.statNum{font:italic 900 46px/1 'Archivo';color:var(--yellow);text-shadow:0 0 18px rgba(246,218,126,.45)}
+.statLbl{font:italic 800 12px 'Archivo';letter-spacing:.4em;color:var(--muted);text-transform:uppercase}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{
+  appearance:none;background:transparent;border:2px solid var(--blue-dim);color:var(--muted);border-radius:10px;
+  padding:9px 13px;font:italic 800 12px/1 'Archivo';letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:.15s;
+}
+.tab.on{border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 12px rgba(246,218,126,.3)}
+#search{margin-bottom:22px}
+
+.card{padding:20px;margin-bottom:18px}
+.cardHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cnum{font:italic 900 22px 'Archivo';color:var(--yellow);text-shadow:2px 2px 0 rgba(111,154,216,.6)}
+.cname{font:italic 900 22px 'Archivo';color:var(--text)}
+.cage{font:italic 800 12px 'Archivo';letter-spacing:.14em;color:var(--blue);border:1.5px solid var(--blue-dim);border-radius:8px;padding:5px 8px}
+.cardHead .grow{flex:1}
+select.status{
+  appearance:none;background:#0a0c12;border:2px solid var(--blue-dim);color:var(--muted);border-radius:10px;
+  padding:9px 12px;font:italic 800 12px 'Archivo';letter-spacing:.12em;text-transform:uppercase;cursor:pointer;outline:none;
+}
+select.status.ACCEPTED{border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 12px rgba(246,218,126,.35)}
+select.status.WAITLIST{border-color:var(--blue);color:var(--blue)}
+select.status.REJECTED{border-color:rgba(233,140,140,.6);color:var(--bad)}
+.contact{display:flex;gap:8px 16px;flex-wrap:wrap;margin:12px 0 4px}
+.contact a{color:var(--blue);font:italic 700 14px 'Archivo';text-decoration:none;border-bottom:1px solid rgba(111,154,216,.35);word-break:break-all}
+.contact a:hover{color:var(--yellow);border-color:var(--yellow-dim)}
+.qa{margin-top:14px}
+.qa .l{font:italic 800 11px 'Archivo';letter-spacing:.35em;color:var(--yellow);text-transform:uppercase;text-shadow:0 0 10px rgba(246,218,126,.35);margin-bottom:6px}
+.qa .v{font:500 15px/1.55 'Archivo';color:var(--text);white-space:pre-wrap;word-break:break-word}
+.qa .v.dim{color:var(--muted);font-style:italic}
+.imgs{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.imgs a{display:block;width:96px;height:96px;border-radius:10px;overflow:hidden;border:2px solid var(--blue-dim)}
+.imgs a.idimg{border-color:var(--yellow-dim);box-shadow:0 0 10px rgba(246,218,126,.2)}
+.imgs img{width:100%;height:100%;object-fit:cover;display:block;background:#0a0c12}
+.ts{margin-top:14px;font:italic 600 12px 'Archivo';letter-spacing:.08em;color:#525b6e}
+#empty{padding:70px 20px;text-align:center;font:italic 800 15px 'Archivo';letter-spacing:.3em;color:var(--blue);text-transform:uppercase;opacity:.7}
+#msg{font:italic 700 14px 'Archivo';color:var(--muted);margin:8px 0 16px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="lock" class="np">
+    <div class="logo">RP&nbsp;Admin</div>
+    <div class="sub">Applications</div>
+    <input class="inp" id="pass" type="password" placeholder="Passcode" autocomplete="current-password">
+    <div class="err" id="lockErr"></div>
+    <button class="btn" id="unlock">Unlock</button>
+  </section>
+
+  <section id="dash">
+    <div class="topRow">
+      <div>
+        <div class="logo">Reid&rsquo;s&nbsp;Party</div>
+        <div class="sub">Applications</div>
+      </div>
+      <div class="topBtns">
+        <button class="btn ghost" id="refresh">Refresh</button>
+        <button class="btn ghost" id="lockBtn">Lock</button>
+      </div>
+    </div>
+    <div class="statRow"><div class="statNum" id="total">0</div><div class="statLbl">Total applicants</div></div>
+    <div class="tabs" id="tabs"></div>
+    <input class="inp" id="search" type="search" placeholder="Search name, socials, answers…">
+    <div id="msg"></div>
+    <div id="cards"></div>
+    <div id="empty" class="np" style="display:none">No applications yet</div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var CFG = window.PARTY_CONFIG || {};
+var LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
+var STATUSES = ['PENDING','ACCEPTED','WAITLIST','REJECTED'];
+var TABS = ['ALL'].concat(STATUSES);
+
+var token = '';
+try{ token = localStorage.getItem('rp_admin_token') || ''; }catch(e){}
+var rows = [];
+var activeTab = 'ALL';
+var query = '';
+
+var $ = function(id){ return document.getElementById(id); };
+
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function pad(n){ return String(n).padStart(3,'0'); }
+
+function setView(unlocked){
+  $('lock').classList.toggle('on', !unlocked);
+  $('dash').classList.toggle('on', unlocked);
+}
+
+/* ---------- data ---------- */
+function load(){
+  if (!ENDPOINT){
+    $('msg').textContent = 'ENDPOINT not set in config.js — see SETUP.md.';
+    return;
+  }
+  $('msg').textContent = 'Loading…';
+  fetch(ENDPOINT + '?action=list&token=' + encodeURIComponent(token))
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (!res.ok){
+        token = '';
+        try{ localStorage.removeItem('rp_admin_token'); }catch(e){}
+        setView(false);
+        $('lockErr').textContent = 'Wrong passcode.';
+        return;
+      }
+      rows = (res.rows || []).slice().sort(function(a,b){ return (b.n||0)-(a.n||0); });
+      $('msg').textContent = '';
+      render();
+    })
+    .catch(function(){ $('msg').textContent = 'Network error — pull to refresh / tap REFRESH.'; });
+}
+
+/* ---------- render ---------- */
+function counts(){
+  var c = {ALL: rows.length};
+  STATUSES.forEach(function(s){ c[s] = 0; });
+  rows.forEach(function(r){ c[(r.status||'PENDING')] = (c[(r.status||'PENDING')]||0) + 1; });
+  return c;
+}
+
+function renderTabs(){
+  var c = counts();
+  var t = $('tabs');
+  t.innerHTML = '';
+  TABS.forEach(function(name){
+    var b = document.createElement('button');
+    b.className = 'tab' + (activeTab === name ? ' on' : '');
+    b.textContent = name + ' ' + (c[name]||0);
+    b.addEventListener('click', function(){ activeTab = name; render(); });
+    t.appendChild(b);
+  });
+}
+
+function thumbUrl(u){
+  var m = String(u).match(/[-\w]{25,}/);
+  if (String(u).indexOf('drive.google.com') >= 0 && m){
+    return 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w480';
+  }
+  return u;
+}
+
+function linkifySocials(s){
+  return String(s||'').split(/[\s,]+/).filter(Boolean).map(function(tk){
+    if (/\./.test(tk)){
+      var href = /^https?:\/\//i.test(tk) ? tk : 'https://' + tk;
+      return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(tk) + '</a>';
+    }
+    return '<span style="color:var(--muted);font:italic 700 14px Archivo">' + esc(tk) + '</span>';
+  }).join(' ');
+}
+
+function imgBlock(urls, idmode){
+  if (!urls || !urls.length) return '';
+  return '<div class="imgs">' + urls.map(function(u){
+    return '<a class="' + (idmode?'idimg':'') + '" href="' + esc(u) + '" target="_blank" rel="noopener"><img loading="lazy" src="' + esc(thumbUrl(u)) + '" alt=""></a>';
+  }).join('') + '</div>';
+}
+
+function fmtTs(ts){
+  var d = new Date(ts);
+  if (isNaN(d)) return esc(String(ts||''));
+  return d.toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+}
+
+function matches(r){
+  if (activeTab !== 'ALL' && (r.status||'PENDING') !== activeTab) return false;
+  if (!query) return true;
+  var hay = [r.name, r.email, r.phone, r.socials, r.why, r.working, r.contrarian, r.age].join(' ').toLowerCase();
+  return hay.indexOf(query) >= 0;
+}
+
+function qa(label, val, dim){
+  return '<div class="qa"><div class="l">' + label + '</div><div class="v' + (dim?' dim':'') + '">' + (val || '<span class="dim" style="color:var(--muted)">—</span>') + '</div></div>';
+}
+
+function render(){
+  renderTabs();
+  $('total').textContent = rows.length;
+  var list = rows.filter(matches);
+  var c = $('cards');
+  c.innerHTML = '';
+  $('empty').style.display = list.length ? 'none' : 'block';
+  list.forEach(function(r){
+    var card = document.createElement('div');
+    card.className = 'np card';
+    var st = (r.status || 'PENDING').toUpperCase();
+    card.innerHTML =
+      '<div class="cardHead">' +
+        '<span class="cnum">№ ' + pad(r.n||0) + '</span>' +
+        '<span class="cname">' + esc(r.name) + '</span>' +
+        '<span class="cage">' + esc(r.age) + '</span>' +
+        '<span class="grow"></span>' +
+        '<select class="status ' + esc(st) + '">' +
+          STATUSES.map(function(s){ return '<option value="' + s + '"' + (s===st?' selected':'') + '>' + s + '</option>'; }).join('') +
+        '</select>' +
+      '</div>' +
+      '<div class="contact">' +
+        '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' +
+        '<a href="tel:' + esc(String(r.phone).replace(/[^\d+]/g,'')) + '">' + esc(r.phone) + '</a>' +
+      '</div>' +
+      qa('Socials', linkifySocials(r.socials)) +
+      qa('Why they want in', esc(r.why)) +
+      qa('Working on', esc(r.working)) +
+      qa('Contrarian take', esc(r.contrarian)) +
+      (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
+      qa('ID — verify 18+', imgBlock(r.id_images, true) || '<span style="color:var(--bad);font:italic 700 14px Archivo">MISSING</span>') +
+      '<div class="ts">' + fmtTs(r.ts) + '</div>';
+
+    var sel = card.querySelector('select.status');
+    sel.addEventListener('change', function(){
+      var ns = sel.value;
+      var old = r.status || 'PENDING';
+      r.status = ns;
+      sel.className = 'status ' + ns;
+      renderTabs();
+      fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'setStatus', token: token, n: r.n, status: ns})})
+        .then(function(x){ return x.json(); })
+        .then(function(res){
+          if (!res.ok){
+            r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
+            $('msg').textContent = 'Status update failed: ' + (res.error||'unknown');
+          }
+        })
+        .catch(function(){
+          r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
+          $('msg').textContent = 'Network error — status not saved.';
+        });
+    });
+    c.appendChild(card);
+  });
+}
+
+/* ---------- events ---------- */
+$('unlock').addEventListener('click', function(){
+  var p = $('pass').value.trim();
+  if (!p){ $('lockErr').textContent = 'Enter the passcode.'; return; }
+  token = p;
+  try{ localStorage.setItem('rp_admin_token', token); }catch(e){}
+  $('lockErr').textContent = '';
+  setView(true);
+  load();
+});
+$('pass').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('unlock').click(); });
+$('refresh').addEventListener('click', load);
+$('lockBtn').addEventListener('click', function(){
+  token = '';
+  try{ localStorage.removeItem('rp_admin_token'); }catch(e){}
+  rows = [];
+  setView(false);
+});
+$('search').addEventListener('input', function(){
+  query = $('search').value.trim().toLowerCase();
+  render();
+});
+
+/* ---------- init ---------- */
+if (token){ setView(true); load(); }
+else setView(false);
+
+})();
+</script>
+</body>
+</html>

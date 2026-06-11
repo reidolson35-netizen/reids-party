@@ -1,0 +1,7 @@
+# local-only secrets and data — never push these
+token.txt
+apps-script/Code.local.gs
+responses.json
+uploads/
+.DS_Store
+__pycache__/

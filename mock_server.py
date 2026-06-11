@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Local stand-in for the Apps Script backend so the whole flow can be
+demoed/tested offline: serves the static site and implements the same
+/exec API (submit, list, setStatus). Responses land in responses.json,
+images in uploads/. Run: python3 mock_server.py  → http://localhost:8765
+Passcode for admin.html = contents of token.txt (fallback: partypass)."""
+
+import base64
+import json
+import os
+import threading
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(ROOT, "responses.json")
+UPLOADS = os.path.join(ROOT, "uploads")
+PORT = 8765
+LOCK = threading.Lock()
+
+try:
+    with open(os.path.join(ROOT, "token.txt")) as fh:
+        TOKEN = fh.read().strip()
+except OSError:
+    TOKEN = "partypass"
+
+STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
+REQUIRED = ["email", "name", "socials", "age", "why", "working", "contrarian", "phone"]
+
+
+def load_rows():
+    try:
+        with open(DATA) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return []
+
+
+def save_rows(rows):
+    with open(DATA, "w") as fh:
+        json.dump(rows, fh, indent=2)
+
+
+def save_images(arr, n, tag, cap):
+    os.makedirs(UPLOADS, exist_ok=True)
+    urls = []
+    for i, f in enumerate(arr[:cap]):
+        b64 = str(f.get("data", ""))
+        if "," in b64:
+            b64 = b64.split(",")[-1]
+        if not b64:
+            continue
+        name = f"{n:03d}-{tag}-{i + 1}.jpg"
+        with open(os.path.join(UPLOADS, name), "wb") as fh:
+            fh.write(base64.b64decode(b64))
+        urls.append(f"/uploads/{name}")
+    return urls
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def _json(self, obj, code=200):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        u = urlparse(self.path)
+        if u.path != "/exec":
+            return super().do_GET()
+        q = parse_qs(u.query)
+        if q.get("action", [""])[0] == "list":
+            if q.get("token", [""])[0] != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            return self._json({"ok": True, "rows": load_rows()})
+        return self._json({"ok": True, "service": "reids-party-mock"})
+
+    def do_POST(self):
+        if urlparse(self.path).path != "/exec":
+            return self._json({"ok": False, "error": "not found"}, 404)
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            p = json.loads(self.rfile.read(length))
+        except (ValueError, TypeError):
+            return self._json({"ok": False, "error": "bad request"})
+
+        if p.get("action") == "setStatus":
+            return self._set_status(p)
+        return self._submit(p)
+
+    def _set_status(self, p):
+        if p.get("token") != TOKEN:
+            return self._json({"ok": False, "error": "bad token"})
+        if p.get("status") not in STATUSES:
+            return self._json({"ok": False, "error": "bad status"})
+        with LOCK:
+            rows = load_rows()
+            for r in rows:
+                if str(r.get("n")) == str(p.get("n")):
+                    r["status"] = p["status"]
+                    save_rows(rows)
+                    return self._json({"ok": True})
+        return self._json({"ok": False, "error": "applicant not found"})
+
+    def _submit(self, p):
+        if p.get("hp"):
+            return self._json({"ok": True, "n": 0})
+        a = p.get("answers") or {}
+        for k in REQUIRED:
+            if not str(a.get(k, "")).strip():
+                return self._json({"ok": False, "error": f"Missing required field: {k}"})
+        try:
+            age = int(str(a.get("age", "")).strip())
+        except ValueError:
+            age = 0
+        if age < 18:
+            return self._json({"ok": False, "error": "18+ only."})
+        if not p.get("id_images"):
+            return self._json({"ok": False, "error": "ID photo is required."})
+        why = str(a.get("why", "")).strip()
+        if not (10 <= len(why) <= 140):
+            return self._json({"ok": False, "error": '"Why" must be 10-140 characters.'})
+
+        with LOCK:
+            rows = load_rows()
+            n = len(rows) + 1
+            row = {
+                "n": n,
+                "ts": p.get("ts", ""),
+                "status": "PENDING",
+                "name": str(a.get("name", "")).strip(),
+                "age": age,
+                "email": str(a.get("email", "")).strip(),
+                "phone": str(a.get("phone", "")).strip(),
+                "socials": str(a.get("socials", "")).strip(),
+                "why": why,
+                "working": str(a.get("working", "")).strip(),
+                "contrarian": str(a.get("contrarian", "")).strip(),
+                "images": save_images(p.get("images") or [], n, "img", 5),
+                "id_images": save_images(p.get("id_images") or [], n, "id", 2),
+            }
+            rows.append(row)
+            save_rows(rows)
+        return self._json({"ok": True, "n": n})
+
+    def log_message(self, fmt, *args):
+        pass  # keep the terminal quiet
+
+
+if __name__ == "__main__":
+    handler = partial(Handler, directory=ROOT)
+    print(f"REID'S PARTY mock server → http://localhost:{PORT}")
+    print(f"  form:  http://localhost:{PORT}/")
+    print(f"  admin: http://localhost:{PORT}/admin.html  (passcode: {TOKEN})")
+    ThreadingHTTPServer(("127.0.0.1", PORT), handler).serve_forever()
