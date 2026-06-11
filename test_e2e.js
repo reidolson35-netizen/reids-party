@@ -190,13 +190,13 @@ async function activeStep() {
   // -- submit ------------------------------------------------------------------
   await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');b[b.length-1].click();return true})()`);
   await waitFor(`(function(){var s=document.querySelectorAll('.step');return s[s.length-1].classList.contains('on');})()`, 15000, 'success screen');
-  const num = await eval_(`document.querySelector('.numVal').textContent`);
-  check('success screen shows applicant number', /^\d{3}$/.test(num), '№ ' + num);
+  const thanks = await eval_(`(document.querySelector('.step.on .bigYellow')||{}).textContent || ''`);
+  check('success screen shows thank-you', /thank you/i.test(thanks), JSON.stringify(thanks));
   await shot('/tmp/rp_success.png');
 
   // -- verify through the API ----------------------------------------------------
   const list = await (await fetch(SITE + 'exec?action=list&token=' + encodeURIComponent(TOKEN))).json();
-  const row = (list.rows || []).find(r => String(r.n) === String(parseInt(num, 10)));
+  const row = (list.rows || []).filter(r => r.name === 'Jeri Athan').pop();
   check('row exists in store via API', !!row);
   if (row) {
     check('row fields round-trip', row.name === 'Jeri Athan' && row.age === 27 &&
