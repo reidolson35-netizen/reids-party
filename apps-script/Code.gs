@@ -1,29 +1,21 @@
 /**
  * REID'S PARTY — backend (Google Apps Script Web App)
  *
- * What it does:
+ * Endpoints:
  *  - POST (no token): accepts an application, saves ID/images to a private
  *    Drive folder, appends a row to a private Google Sheet, emails you.
  *  - GET ?action=list&token=…: returns every application as JSON (admin page).
  *  - POST {action:'setStatus', token, n, status}: updates a row's status.
  *
- * Deploy (one time, ~3 minutes):
- *  1. Go to https://script.new
- *  2. Delete the placeholder code, paste this whole file.
- *  3. Set TOKEN below to your passcode (this is also the admin page passcode).
- *  4. Deploy → New deployment → type: Web app
- *       - Execute as: Me
- *       - Who has access: Anyone
- *     → Authorize when asked → copy the URL ending in /exec
- *  5. Put that URL in config.js (ENDPOINT) on the site.
- *
- * The Sheet ("Reid's Party Applications") and the Drive folder
- * ("Reid's Party Uploads") are created automatically on the first submission,
- * in YOUR Drive, visible only to you.
+ * Scopes are deliberately minimal (see appsscript.json): spreadsheets,
+ * drive.file (only files this script creates), send-mail, user email.
+ * Drive access goes through the Drive v3 advanced service so the broad
+ * DriveApp scope is never requested — that scope is "restricted" and made
+ * Google hard-block the consent screen.
  */
 
-var TOKEN = 'PASTE_PASSCODE_HERE';   // ← set this. Also what you type into admin.html.
-var NOTIFY_EMAIL = true;             // email you on every new application
+var TOKEN = 'PASTE_PASSCODE_HERE';   // also what you type into admin.html
+var NOTIFY_EMAIL = true;         // email you on every new application
 var SHEET_NAME = "Reid's Party Applications";
 var FOLDER_NAME = "Reid's Party Uploads";
 var HEADERS = ['#','Timestamp','Status','Name','Age','Email','Phone','Socials',
@@ -42,24 +34,30 @@ function getSpreadsheet_(){
   if (id){
     try { return SpreadsheetApp.openById(id); } catch (e) {}
   }
-  var ss = SpreadsheetApp.create(SHEET_NAME);
+  // create via Drive API (drive.file scope), then open via the Sheets scope
+  var f = Drive.Files.create({
+    name: SHEET_NAME,
+    mimeType: 'application/vnd.google-apps.spreadsheet'
+  });
+  var ss = SpreadsheetApp.openById(f.id);
   var sh = ss.getSheets()[0];
   sh.setName('Applications');
   sh.appendRow(HEADERS);
   sh.setFrozenRows(1);
-  props.setProperty('SPREADSHEET_ID', ss.getId());
+  props.setProperty('SPREADSHEET_ID', f.id);
   return ss;
 }
 
-function getFolder_(){
+function getFolderId_(){
   var props = PropertiesService.getScriptProperties();
   var id = props.getProperty('FOLDER_ID');
-  if (id){
-    try { return DriveApp.getFolderById(id); } catch (e) {}
-  }
-  var folder = DriveApp.createFolder(FOLDER_NAME);
-  props.setProperty('FOLDER_ID', folder.getId());
-  return folder;
+  if (id) return id;
+  var folder = Drive.Files.create({
+    name: FOLDER_NAME,
+    mimeType: 'application/vnd.google-apps.folder'
+  });
+  props.setProperty('FOLDER_ID', folder.id);
+  return folder.id;
 }
 
 function pad_(n){
@@ -165,7 +163,7 @@ function submit_(p){
 
 function saveImages_(arr, n, tag, cap){
   if (!arr || !arr.length) return [];
-  var folder = getFolder_();
+  var folderId = getFolderId_();
   var urls = [];
   for (var i = 0; i < Math.min(arr.length, cap); i++){
     var f = arr[i] || {};
@@ -177,7 +175,12 @@ function saveImages_(arr, n, tag, cap){
       f.type || 'image/jpeg',
       pad_(n) + '-' + tag + '-' + (i + 1) + '.jpg'
     );
-    urls.push(folder.createFile(blob).getUrl());
+    var file = Drive.Files.create(
+      {name: blob.getName(), parents: [folderId]},
+      blob,
+      {fields: 'id'}
+    );
+    urls.push('https://drive.google.com/file/d/' + file.id + '/view');
   }
   return urls;
 }

@@ -14,7 +14,8 @@
 'use strict';
 
 const fs = require('fs');
-const SITE = 'http://localhost:8765/';
+const SITE = process.env.RP_SITE || 'http://localhost:8765/';   // e.g. https://…github.io/reids-party/
+const EXEC = process.env.RP_EXEC || (SITE + 'exec');            // backend URL when SITE is the live page
 const CDP = 'http://127.0.0.1:9222';
 const TOKEN = fs.existsSync(__dirname + '/token.txt')
   ? fs.readFileSync(__dirname + '/token.txt', 'utf8').trim() : 'partypass';
@@ -195,7 +196,7 @@ async function activeStep() {
   await shot('/tmp/rp_success.png');
 
   // -- verify through the API ----------------------------------------------------
-  const list = await (await fetch(SITE + 'exec?action=list&token=' + encodeURIComponent(TOKEN))).json();
+  const list = await (await fetch(EXEC + '?action=list&token=' + encodeURIComponent(TOKEN), {redirect: 'follow'})).json();
   const row = (list.rows || []).filter(r => r.name === 'Jeri Athan').pop();
   check('row exists in store via API', !!row);
   if (row) {

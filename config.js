@@ -5,5 +5,5 @@
 // When empty and running on localhost, the pages automatically use the local
 // mock server (mock_server.py) at /exec so you can demo everything offline.
 window.PARTY_CONFIG = {
-  ENDPOINT: ""
+  ENDPOINT: "https://script.google.com/macros/s/AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ/exec"
 };

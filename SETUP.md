@@ -21,26 +21,33 @@ applicant's phone ──► index.html (GitHub Pages / your domain)
      admin.html  (status buttons: PENDING / ACCEPTED / WAITLIST / REJECTED)
 ```
 
-## 1. The one thing only you can do (~3 minutes)
+## 1. Backend status: DEPLOYED ✓ (2026-06-12)
 
-1. Open **https://script.new** (logged in as reidolson35@gmail.com).
-2. Delete the placeholder, paste in **`apps-script/Code.local.gs`**
-   (it's `Code.gs` with your passcode already filled in — passcode also lives
-   in `token.txt`; both are gitignored, never pushed).
-3. **Deploy → New deployment → ⚙ type: Web app**
-   - Description: anything
-   - Execute as: **Me**
-   - Who has access: **Anyone**  ← required so applicants can submit
-4. Click **Authorize** and accept (it asks for Sheets/Drive/Mail because the
-   script creates your sheet, stores uploads, and emails you).
-5. Copy the **Web app URL** (ends in `/exec`).
-6. Paste it into `config.js` → `ENDPOINT: "https://script.google.com/macros/s/…/exec"`,
-   then push (`git add config.js && git commit -m "wire endpoint" && git push`)
-   — or just give the URL to Claude and it's handled.
+The web app is live and wired into `config.js`. Moving parts:
 
-First submission auto-creates, in your Drive, visible only to you:
-- Sheet **"Reid's Party Applications"** — one row per applicant
-- Folder **"Reid's Party Uploads"** — ID photos + images
+- **Script**: "Untitled project", scriptId `1SL4lN3ZyemQZzGNQQ1949ESurWiL2bvdugDWxXvfVkrK8qg5YqoeSjks`
+  (deployed via `clasp` from `gas/`, deployment
+  `AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ`)
+- **GCP project**: `sunny-dialect-499212-k4` ("My Project 88054") — owns the
+  OAuth consent screen (External / Testing, reidolson35@gmail.com is a test
+  user) and has the Drive API enabled. Required because this Google account
+  hard-blocks unverified-app consent; test users are exempt.
+- In your Drive (created on first use, only you can see them):
+  Sheet **"Reid's Party Applications"** + folder **"Reid's Party Uploads"**.
+
+**To change backend code later** (token lives in `~/.clasprc.json`):
+
+```bash
+cd gas
+# edit Code.js (it's the real deployed source, passcode inside, gitignored)
+PATH="$HOME/.npm-global/bin:$PATH" clasp push -f
+PATH="$HOME/.npm-global/bin:$PATH" clasp redeploy \
+  AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ
+```
+
+Same `/exec` URL survives redeploys — no config.js change needed.
+`apps-script/Code.gs` is the public placeholder copy; `gas/Code.js` +
+`apps-script/Code.local.gs` are the real ones (gitignored).
 
 ## 2. Reviewing applications
 

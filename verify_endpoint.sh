@@ -17,7 +17,7 @@ echo "== 1/3 health check =="
 curl -sL "$URL"; echo
 
 echo "== 2/3 test submission =="
-curl -sL -X POST "$URL" -d "{
+curl -sL "$URL" -d "{
   \"hp\":\"\",\"ua\":\"verify_endpoint.sh\",\"ts\":\"$(date -u +%FT%TZ)\",
   \"answers\":{
     \"email\":\"test@example.com\",\"name\":\"TEST - DELETE ME\",
