@@ -61,16 +61,21 @@ Same `/exec` URL survives redeploys — no config.js change needed.
 - **Push:** every application emails you (subject: `Party application №…`).
   Set `NOTIFY_EMAIL = false` in the script to turn off.
 
-## 3. Domain
+## 3. Domain: reidsparty.com
 
-Buy **reids.party** (Porkbun or Cloudflare, ~$10–20/yr), then:
+Reid owns **reidsparty.com** (2026-06-12). GitHub side is done (CNAME file in
+repo + Pages cname set). Registrar DNS records:
 
-1. Repo → Settings → Pages → Custom domain → `reids.party` (creates CNAME file).
-2. At the registrar, add DNS records:
-   - `A` records for apex `reids.party` → `185.199.108.153`, `185.199.109.153`,
-     `185.199.110.153`, `185.199.111.153`
-   - `CNAME` for `www` → `reidolson35-netizen.github.io`
-3. Back in Pages settings: tick **Enforce HTTPS** once the cert is issued.
+- `A` for apex `@` → `185.199.108.153`, `185.199.109.153`,
+  `185.199.110.153`, `185.199.111.153`
+- `CNAME` for `www` → `reidolson35-netizen.github.io`
+- Delete any pre-filled parking/forwarding records. On Cloudflare keep
+  records DNS-only (grey cloud) until the certificate is issued.
+
+Once DNS propagates: Pages settings → **Enforce HTTPS** (or
+`gh api -X PUT repos/reidolson35-netizen/reids-party/pages -F https_enforced=true`).
+Site then lives at https://reidsparty.com (admin at /admin.html); the
+github.io URL redirects.
 
 ## 4. Local demo / development
 
