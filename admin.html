@@ -179,7 +179,7 @@ function load(){
     return;
   }
   $('msg').textContent = 'Loading…';
-  fetch(ENDPOINT + '?action=list&token=' + encodeURIComponent(token))
+  fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'list', token: token})})
     .then(function(r){ return r.json(); })
     .then(function(res){
       if (!res.ok){

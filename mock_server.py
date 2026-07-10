@@ -108,6 +108,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._set_status(p)
         if p.get("action") == "delete":
             return self._delete(p)
+        if p.get("action") == "list":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            return self._json({"ok": True, "rows": load_rows()})
         return self._submit(p)
 
     def _delete(self, p):

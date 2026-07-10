@@ -1,0 +1,15 @@
+name = "reidsparty-api"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+account_id = "f55e7db86bfb513ac2a7cd178b9887a0"
+workers_dev = true
+
+[vars]
+# Legacy Apps Script backend — best-effort mirror (Google Sheet + notify email).
+# Submissions never depend on it; when its weekly grant lapses, only the mirror pauses.
+LEGACY_EXEC = "https://script.google.com/macros/s/AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ/exec"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "reidsparty"
+database_id = "3f005bbc-ff37-432d-8651-9b7c819d4856"
