@@ -9,12 +9,10 @@
 <meta property="og:description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
 <meta name="theme-color" content="#fbf4c7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://use.typekit.net/yvb0zhe.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Fallback faces (warm, until real Quiche is active). -->
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&family=Fraunces:opsz,wght@9..144,400..900&display=swap" rel="stylesheet">
-<!-- QUICHE: paste your Adobe Fonts web-project link here to switch to real Quiche.
-     <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css"> -->
 <script src="config.js"></script>
 <style>
 :root{
@@ -59,14 +57,15 @@ body{
 #progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
 #progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
 
-/* ---------- decorative loop framing the active step ---------- */
-#framer{
-  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:min(780px,94vw);height:min(680px,80vh);
-  z-index:0;pointer-events:none;overflow:visible;
+/* ---------- spirograph: one flower drawn progressively across the steps ---------- */
+#spiro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:0;pointer-events:none;overflow:visible}
+#spiroPath{
+  fill:none;stroke:var(--coral);stroke-width:2.5;opacity:.72;
+  stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 5px rgba(240,115,107,.6));
+  transition:stroke-dashoffset 1.05s ease;
 }
-#framerPath{fill:none;stroke:var(--coral);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
-@media (prefers-reduced-motion: reduce){#framerPath{stroke-dashoffset:0 !important}}
+@media (prefers-reduced-motion: reduce){#spiroPath{transition:none;stroke-dashoffset:0 !important}}
 
 /* ---------- steps ---------- */
 .step{display:none}
@@ -138,16 +137,7 @@ textarea.inp{resize:vertical;min-height:150px;line-height:1.5}
 </head>
 <body>
 <div id="progress"><div id="progressFill"></div></div>
-<svg id="framer" viewBox="0 0 800 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-  <path id="framerPath" d="M 402 44
-    C 214 22, 92 96, 96 250
-    C 98 372, 30 456, 128 548
-    C 232 646, 452 664, 596 610
-    C 728 560, 792 430, 742 300
-    C 700 190, 764 120, 628 66
-    C 516 22, 300 38, 250 118
-    C 214 176, 296 214, 430 176"/>
-</svg>
+<svg id="spiro" aria-hidden="true"><path id="spiroPath"/></svg>
 <input class="hp" id="hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
 <main id="app"></main>
 <div id="busy"><div id="busyText">Sending</div></div>
@@ -467,28 +457,57 @@ function advance(q, idx, errEl){
   else show(idx + 1);
 }
 
-/* redraw the decorative loop each time a new step appears */
-var framerPath = document.getElementById('framerPath');
-var framerLen = framerPath ? framerPath.getTotalLength() : 0;
+/* one spirograph flower, drawn a little more on every step — complete at the end */
+var spiroSvg = document.getElementById('spiro');
+var spiroPath = document.getElementById('spiroPath');
+var spiroLen = 0;
 var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-if (framerPath && !reduceMotion){
-  framerPath.style.strokeDasharray = framerLen;
-  framerPath.style.strokeDashoffset = framerLen;
+
+function buildSpiro(){
+  if (!spiroPath) return;
+  var vw = window.innerWidth, vh = window.innerHeight;
+  spiroSvg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
+  /* hypotrochoid (the pencil-in-the-gear toy): R=5, r=3, d=8 → a 5-lobed
+     flower with an open middle, closing exactly after θ = 6π */
+  var R = 5, r = 3, dd = 8;
+  var maxR = (R - r) + dd;
+  var size = Math.min(vw * 0.96, vh * 0.94, 1040);
+  var k = (size / 2) / maxR;
+  var cx = vw / 2, cy = vh / 2;
+  var pts = [];
+  var N = 900, TURNS = 6 * Math.PI;
+  for (var i = 0; i <= N; i++){
+    var t = TURNS * i / N;
+    var x = cx + k * ((R - r) * Math.cos(t) + dd * Math.cos(((R - r) / r) * t));
+    var y = cy + k * ((R - r) * Math.sin(t) - dd * Math.sin(((R - r) / r) * t));
+    pts.push((i ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1));
+  }
+  spiroPath.setAttribute('d', pts.join(''));
+  spiroLen = spiroPath.getTotalLength();
+  spiroPath.style.strokeDasharray = spiroLen;
+  applySpiro(true);
 }
-function drawFramer(){
-  if (!framerPath || reduceMotion) return;
-  framerPath.style.transition = 'none';
-  framerPath.style.strokeDashoffset = framerLen;
-  void framerPath.getBoundingClientRect();
-  framerPath.style.transition = 'stroke-dashoffset 1.15s ease';
-  framerPath.style.strokeDashoffset = 0;
+
+function applySpiro(instant){
+  if (!spiroPath || !spiroLen) return;
+  var f = reduceMotion ? 1 : (step + 1) / (TOTAL + 2);   /* intro starts it, success completes it */
+  if (instant){
+    spiroPath.style.transition = 'none';
+    spiroPath.style.strokeDashoffset = spiroLen * (1 - f);
+    void spiroPath.getBoundingClientRect();
+    spiroPath.style.transition = '';
+  } else {
+    spiroPath.style.strokeDashoffset = spiroLen * (1 - f);
+  }
 }
+var spT = null;
+window.addEventListener('resize', function(){ clearTimeout(spT); spT = setTimeout(buildSpiro, 180); }, {passive:true});
 
 function show(i){
   step = Math.max(0, Math.min(TOTAL + 1, i));
   sections.forEach(function(s, j){ s.classList.toggle('on', j === step); });
   fill.style.width = Math.round(100 * step / (TOTAL + 1)) + '%';
-  drawFramer();
+  applySpiro();
   var s = sections[step];
   if (s && s._q){
     refreshState(s._q, s);
@@ -561,6 +580,7 @@ sections.push(buildSuccess());
 sections.forEach(function(s){ app.appendChild(s); });
 var m = (location.hash || '').match(/^#q(\d+)$/);
 show(m ? Math.min(TOTAL, parseInt(m[1], 10)) : 0);
+buildSpiro();
 
 })();
 </script>

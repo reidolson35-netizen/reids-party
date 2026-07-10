@@ -9,14 +9,10 @@
 <meta property="og:description" content="Dating apps suck almost as much as the Austin dating scene — so we throw application-based, mostly-singles parties for genuinely interesting people. No fees.">
 <meta name="theme-color" content="#fbf4c7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://use.typekit.net/yvb0zhe.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Fallback faces (warm, until real Quiche is active). -->
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&family=Fraunces:opsz,wght@9..144,400..900&display=swap" rel="stylesheet">
-<!-- QUICHE: to switch the whole site to real Quiche Display + Quiche Sans, paste your
-     Adobe Fonts web-project link below (Adobe Fonts → your kit → web → embed code). No other
-     change needed — the CSS already asks for "quiche-display" / "quiche-sans" first.
-     <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css"> -->
 <style>
 :root{
   --bg:#fbf4c7;
@@ -38,7 +34,8 @@ body{
   min-height:100dvh;
 }
 ::selection{background:var(--rose-bold);color:var(--bg)}
-b{color:var(--rose-bold);font-weight:700}
+b{color:var(--rose-bold);font-weight:700;transition:text-shadow .5s ease}
+b.lit{text-shadow:0 0 9px rgba(240,115,107,.6)}
 
 /* ---------- buttons ---------- */
 .btn{
@@ -53,23 +50,45 @@ b{color:var(--rose-bold);font-weight:700}
 }
 .btn:hover{box-shadow:0 10px 22px rgba(228,114,106,.26);transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
+.btn.lit{animation:btnGlow 1.5s ease-in-out infinite alternate}
+@keyframes btnGlow{
+  from{box-shadow:0 0 10px rgba(240,115,107,.45), 0 6px 16px rgba(228,114,106,.16)}
+  to{box-shadow:0 0 26px rgba(240,115,107,.85), 0 6px 16px rgba(228,114,106,.16)}
+}
+@media (prefers-reduced-motion: reduce){.btn.lit{animation:none;box-shadow:0 0 18px rgba(240,115,107,.6)}}
 
 /* ---------- scroll trail ---------- */
 main{position:relative}
 #trail{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible}
-#trailPath{fill:none;stroke:var(--coral);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+#trailPath{
+  fill:none;stroke:var(--coral);stroke-width:4;
+  stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
+  filter:drop-shadow(0 0 5px rgba(240,115,107,.65));
+}
 .layer{position:relative;z-index:1}
 @media (prefers-reduced-motion: reduce){#trailPath{stroke-dashoffset:0 !important}}
 
 /* ---------- hero (centered) ---------- */
 .hero{
+  position:relative;
   min-height:100dvh;max-width:820px;margin:0 auto;
   display:flex;flex-direction:column;justify-content:center;align-items:center;
   text-align:center;
-  padding:40px 22px calc(40px + env(safe-area-inset-bottom));
+  padding:40px 22px calc(96px + env(safe-area-inset-bottom));
 }
+#scrollCue{
+  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+  filter:drop-shadow(0 0 5px rgba(240,115,107,.6));
+  transition:opacity .55s ease;
+  animation:cueBob 1.8s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+#scrollCue.gone{opacity:0}
+@keyframes cueBob{from{transform:translate(-50%,0)}to{transform:translate(-50%,7px)}}
+@media (prefers-reduced-motion: reduce){#scrollCue{animation:none}}
 .logo{
-  font-family:var(--fdisp);font-weight:800;font-style:normal;
+  font-family:var(--fdisp);font-weight:700;
   font-size:clamp(46px,11vw,96px);line-height:1;
   color:var(--rose-bold);
   letter-spacing:-.01em;margin:0 0 18px;
@@ -82,7 +101,7 @@ main{position:relative}
   font-size:clamp(17px,2.6vw,21px);line-height:1.5;
   color:var(--rose);margin:0 0 8px;max-width:620px;
 }
-.tag.sub{font-weight:500;font-size:clamp(14px,2vw,16px);color:var(--rose-head);margin:0 0 34px}
+.tag.sub{font-weight:400;font-size:clamp(14px,2vw,16px);color:var(--rose-head);margin:0 0 34px}
 .cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
 
 /* ---------- about: alternating question / answer rows ---------- */
@@ -107,7 +126,7 @@ main{position:relative}
 .a .copy:last-of-type{margin-bottom:0}
 
 /* closing line + final button, centered under the last row */
-.closer{max-width:1000px;margin:0 auto;padding:0 22px 130px;text-align:center}
+.closer{max-width:1000px;margin:0 auto;padding:0 22px 150px;text-align:center}
 .closer .copy{font-weight:600;font-size:clamp(17px,2.4vw,20px);margin:0 0 30px}
 
 .reveal{opacity:0;transform:translateY(40px);transition:opacity .8s ease, transform .8s ease}
@@ -117,19 +136,11 @@ main{position:relative}
 </head>
 <body>
 <main>
-  <svg id="trail" viewBox="0 0 1000 2600" preserveAspectRatio="none" aria-hidden="true">
-    <path id="trailPath" d="M 80 700
-      C 240 740, 320 830, 260 900
-      C 200 980, 120 1010, 320 1040
-      C 560 1075, 660 950, 780 990
-      C 930 1035, 970 1200, 850 1300
-      C 740 1390, 560 1330, 520 1205
-      C 485 1085, 300 1120, 165 1305
-      C 60 1445, 70 1580, 105 1680
-      C 160 1850, 430 1840, 575 1920
-      C 740 2010, 860 2045, 900 2185
-      C 930 2300, 815 2365, 675 2350
-      C 575 2340, 510 2420, 480 2510"/>
+  <svg id="trail" aria-hidden="true">
+    <defs>
+      <mask id="wordMask" maskUnits="userSpaceOnUse"></mask>
+    </defs>
+    <path id="trailPath" mask="url(#wordMask)"/>
   </svg>
 
   <div class="layer">
@@ -140,6 +151,11 @@ main{position:relative}
       <div class="cta">
         <a class="btn" href="#about">About us</a>
         <a class="btn" href="apply.html">Apply here</a>
+      </div>
+      <div id="scrollCue" aria-hidden="true">
+        <svg viewBox="0 0 24 64" width="24" height="64">
+          <path d="M12 2 V50 M4 42 L12 52 L20 42" fill="none" stroke="#f0736b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
     </section>
 
@@ -169,7 +185,7 @@ main{position:relative}
 
     <section class="closer reveal">
       <p class="copy">So if you&rsquo;re interested, and you think you&rsquo;d be a fit, please <b>apply.</b></p>
-      <a class="btn" href="apply.html">Apply here</a>
+      <a class="btn" id="finalApply" href="apply.html">Apply here</a>
     </section>
   </div>
 </main>
@@ -184,25 +200,147 @@ var io = new IntersectionObserver(function(es){
 }, {threshold: 0.16});
 document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
 
-/* draw the trail as you scroll down the page */
+/* ---------- the trail ----------
+ * Built at runtime from the real layout: it swings side to side, UNDERLINES
+ * each big question as it passes, vanishes inside the highlighted <b> words
+ * (mask holes) and lights them up as the tip passes, then runs into the
+ * final Apply button and ignites it. Draws in with scroll. */
+var svg = document.getElementById('trail');
 var path = document.getElementById('trailPath');
-if (path && !matchMedia('(prefers-reduced-motion: reduce)').matches){
-  var len = path.getTotalLength();
-  path.style.strokeDasharray = len;
-  path.style.strokeDashoffset = len;
-  var ticking = false;
-  function draw(){
-    ticking = false;
-    var doc = document.documentElement;
-    var max = (doc.scrollHeight - doc.clientHeight) || 1;
-    var p = Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
-    path.style.strokeDashoffset = len * (1 - p);
+var mask = document.getElementById('wordMask');
+var endBtn = document.getElementById('finalApply');
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var len = 0, wordHits = [], built = false;
+
+function pageBox(el){
+  var x = 0, y = 0, n = el;
+  while (n){ x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return {x: x, y: y, w: el.offsetWidth, h: el.offsetHeight};
+}
+
+/* Catmull-Rom through waypoints → one smooth, loopy hand-drawn line */
+function smoothPath(pts){
+  var d = 'M ' + pts[0].x.toFixed(1) + ' ' + pts[0].y.toFixed(1);
+  for (var i = 0; i < pts.length - 1; i++){
+    var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    d += ' C ' + (p1.x + (p2.x - p0.x) / 6).toFixed(1) + ' ' + (p1.y + (p2.y - p0.y) / 6).toFixed(1) +
+         ', ' + (p2.x - (p3.x - p1.x) / 6).toFixed(1) + ' ' + (p2.y - (p3.y - p1.y) / 6).toFixed(1) +
+         ', ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
   }
-  function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(draw); } }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  window.addEventListener('resize', onScroll, {passive:true});
+  return d;
+}
+
+function buildTrail(){
+  var main = document.querySelector('main');
+  var W = main.offsetWidth, H = main.offsetHeight;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#about .qa-row'));
+  var eb = pageBox(endBtn);
+  var narrow = W < 720;
+
+  /* the trail grows out of the scroll cue's arrow */
+  var cue = pageBox(document.getElementById('scrollCue'));
+  var pts = [
+    {x: cue.x + cue.w / 2, y: cue.y + 2},
+    {x: cue.x + cue.w / 2, y: cue.y + 60}
+  ];
+
+  rows.forEach(function(row){
+    var lab = row.querySelector('.qlabel');
+    var b = pageBox(lab);
+    var uy = b.y + b.h + (narrow ? 10 : 14);
+    var leftSide = (b.x + b.w / 2) < W / 2;
+    var x1 = leftSide ? b.x - 26 : b.x + b.w + 26;   /* enter from the outside edge */
+    var x2 = leftSide ? b.x + b.w + 28 : b.x - 28;   /* exit toward the middle */
+    var prev = pts[pts.length - 1];
+
+    /* big swing via the opposite side of the page, then dive to the underline.
+       Shoulder points pin the underline flat so the spline can't lift it into the text. */
+    pts.push({x: leftSide ? W * 0.9 : W * 0.1, y: (prev.y + uy) / 2});
+    pts.push({x: x1 - (leftSide ? 70 : -70), y: uy - 48});
+    pts.push({x: x1, y: uy});
+    pts.push({x: x1 + (x2 - x1) * 0.3, y: uy + 8});
+    pts.push({x: x2 - (x2 - x1) * 0.3, y: uy + 8});
+    pts.push({x: x2, y: uy});
+
+    /* pass through the highlighted words of this row's answer */
+    var words = Array.prototype.slice.call(row.querySelectorAll('.a b'));
+    var hit = words.length > 2 ? [words[0], words[words.length - 1]] : words;
+    hit.forEach(function(word){
+      var wb = pageBox(word);
+      pts.push({x: wb.x + wb.w / 2, y: wb.y + wb.h / 2});
+    });
+  });
+
+  /* glide down, pass through the closing "apply.", then run into the button */
+  var ex = eb.x + eb.w / 2, ey = eb.y - 4;
+  var last = pts[pts.length - 1];
+  var closerWord = document.querySelector('.closer b');
+  pts.push({x: W * 0.8, y: (last.y + ey) / 2});
+  if (closerWord){
+    var cw = pageBox(closerWord);
+    pts.push({x: cw.x + cw.w / 2, y: cw.y + cw.h / 2});
+  } else {
+    pts.push({x: ex, y: ey - 90});
+  }
+  pts.push({x: ex, y: ey});
+  path.setAttribute('d', smoothPath(pts));
+
+  /* mask: hide the line inside every highlighted word (plus the button area) */
+  var holes = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>';
+  var bs = Array.prototype.slice.call(document.querySelectorAll('main b'));
+  var rects = [];
+  bs.forEach(function(el){
+    var r = pageBox(el);
+    holes += '<rect x="' + (r.x - 4) + '" y="' + (r.y - 3) + '" width="' + (r.w + 8) + '" height="' + (r.h + 6) + '" fill="#000" rx="4"/>';
+    rects.push({el: el, x: r.x - 6, y: r.y - 5, w: r.w + 12, h: r.h + 10});
+  });
+  mask.innerHTML = holes;
+
+  /* where along the path does the tip hit each word / the button? */
+  len = path.getTotalLength();
+  wordHits = [];
+  var btnRect = {x: eb.x, y: eb.y - 10, w: eb.w, h: eb.h + 14};
+  var btnLen = null;
+  for (var l = 0; l <= len; l += 12){
+    var pt = path.getPointAtLength(l);
+    rects.forEach(function(r){
+      if (r.len == null && pt.x >= r.x && pt.x <= r.x + r.w && pt.y >= r.y && pt.y <= r.y + r.h) r.len = l;
+    });
+    if (btnLen == null && pt.x >= btnRect.x && pt.x <= btnRect.x + btnRect.w && pt.y >= btnRect.y && pt.y <= btnRect.y + btnRect.h) btnLen = l;
+  }
+  rects.forEach(function(r){ if (r.len != null) wordHits.push({el: r.el, len: r.len}); });
+  wordHits.push({el: endBtn, len: (btnLen != null ? btnLen : len - 6)});
+
+  path.style.strokeDasharray = len;
+  built = true;
   draw();
 }
+
+var ticking = false;
+function draw(){
+  ticking = false;
+  if (!built) return;
+  var doc = document.documentElement;
+  var max = (doc.scrollHeight - doc.clientHeight) || 1;
+  var p = reduce ? 1 : Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
+  var drawn = len * p;
+  path.style.strokeDashoffset = len - drawn;
+  wordHits.forEach(function(h){ h.el.classList.toggle('lit', drawn >= h.len); });
+  var cueEl = document.getElementById('scrollCue');
+  if (cueEl) cueEl.classList.toggle('gone', p > 0.012);
+}
+function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(draw); } }
+
+var rsT = null;
+function onResize(){ clearTimeout(rsT); rsT = setTimeout(buildTrail, 180); }
+
+window.addEventListener('scroll', onScroll, {passive:true});
+window.addEventListener('resize', onResize, {passive:true});
+buildTrail();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildTrail);
+window.addEventListener('load', buildTrail);
 })();
 </script>
 </body>
