@@ -57,15 +57,14 @@ body{
 #progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
 #progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
 
-/* ---------- spirograph: one flower drawn progressively across the steps ---------- */
+/* ---------- string-art star: chords appear step by step, the full 70-point
+   star only weaves together on the final screen. No CSS filters — the glow is
+   a soft under-stroke per chord, which keeps phones smooth. ---------- */
 #spiro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:0;pointer-events:none;overflow:visible}
-#spiroPath{
-  fill:none;stroke:var(--coral);stroke-width:2.5;opacity:.72;
-  stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 0 5px rgba(240,115,107,.6));
-  transition:stroke-dashoffset 1.05s ease;
-}
-@media (prefers-reduced-motion: reduce){#spiroPath{transition:none;stroke-dashoffset:0 !important}}
+#spiro line{stroke:var(--coral);stroke-linecap:round;transition:stroke-dashoffset .55s ease}
+#spiro line.glow{stroke:rgba(240,115,107,.15);stroke-width:6.5}
+#spiro line.core{stroke-width:1.8;opacity:.6}
+@media (prefers-reduced-motion: reduce){#spiro line{transition:none}}
 
 /* ---------- steps ---------- */
 .step{display:none}
@@ -137,7 +136,7 @@ textarea.inp{resize:vertical;min-height:150px;line-height:1.5}
 </head>
 <body>
 <div id="progress"><div id="progressFill"></div></div>
-<svg id="spiro" aria-hidden="true"><path id="spiroPath"/></svg>
+<svg id="spiro" aria-hidden="true"></svg>
 <input class="hp" id="hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
 <main id="app"></main>
 <div id="busy"><div id="busyText">Sending</div></div>
@@ -457,47 +456,60 @@ function advance(q, idx, errEl){
   else show(idx + 1);
 }
 
-/* one spirograph flower, drawn a little more on every step — complete at the end */
+/* string-art star (70 points): each step reveals a handful of separate
+   chords; the star polygon {70/17} only weaves fully together on the
+   thank-you screen. */
 var spiroSvg = document.getElementById('spiro');
-var spiroPath = document.getElementById('spiroPath');
-var spiroLen = 0;
 var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var SP_N = 70, SP_K = 17;
+var chords = [];
 
 function buildSpiro(){
-  if (!spiroPath) return;
+  if (!spiroSvg) return;
   var vw = window.innerWidth, vh = window.innerHeight;
   spiroSvg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
-  /* hypotrochoid (the pencil-in-the-gear toy): R=5, r=3, d=8 → a 5-lobed
-     flower with an open middle, closing exactly after θ = 6π */
-  var R = 5, r = 3, dd = 8;
-  var maxR = (R - r) + dd;
-  var size = Math.min(vw * 0.96, vh * 0.94, 1040);
-  var k = (size / 2) / maxR;
+  spiroSvg.innerHTML = '';
+  chords = [];
   var cx = vw / 2, cy = vh / 2;
+  var R0 = Math.min(vw, vh) * 0.47;
   var pts = [];
-  var N = 900, TURNS = 6 * Math.PI;
-  for (var i = 0; i <= N; i++){
-    var t = TURNS * i / N;
-    var x = cx + k * ((R - r) * Math.cos(t) + dd * Math.cos(((R - r) / r) * t));
-    var y = cy + k * ((R - r) * Math.sin(t) - dd * Math.sin(((R - r) / r) * t));
-    pts.push((i ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1));
+  for (var i = 0; i < SP_N; i++){
+    var a = -Math.PI / 2 + i * 2 * Math.PI / SP_N;
+    pts.push({x: cx + R0 * Math.cos(a), y: cy + R0 * Math.sin(a)});
   }
-  spiroPath.setAttribute('d', pts.join(''));
-  spiroLen = spiroPath.getTotalLength();
-  spiroPath.style.strokeDasharray = spiroLen;
+  var NS = 'http://www.w3.org/2000/svg';
+  var v = 0;
+  for (var j = 0; j < SP_N; j++){
+    var a1 = pts[v], a2 = pts[(v + SP_K) % SP_N];
+    var L = Math.hypot(a2.x - a1.x, a2.y - a1.y);
+    ['glow', 'core'].forEach(function(cls){
+      var ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('x1', a1.x.toFixed(1)); ln.setAttribute('y1', a1.y.toFixed(1));
+      ln.setAttribute('x2', a2.x.toFixed(1)); ln.setAttribute('y2', a2.y.toFixed(1));
+      ln.setAttribute('class', cls);
+      ln.style.strokeDasharray = L;
+      ln.style.strokeDashoffset = L;
+      spiroSvg.appendChild(ln);
+      chords.push({el: ln, len: L, idx: j});
+    });
+    v = (v + SP_K) % SP_N;
+  }
   applySpiro(true);
 }
 
 function applySpiro(instant){
-  if (!spiroPath || !spiroLen) return;
+  if (!chords.length) return;
   var f = reduceMotion ? 1 : (step + 1) / (TOTAL + 2);   /* intro starts it, success completes it */
+  var show = Math.round(f * SP_N);
+  chords.forEach(function(c){
+    var on = c.idx < show;
+    if (instant) c.el.style.transition = 'none';
+    else c.el.style.transitionDelay = on ? ((c.idx % 7) * 70) + 'ms' : '0ms';
+    c.el.style.strokeDashoffset = on ? 0 : c.len;
+  });
   if (instant){
-    spiroPath.style.transition = 'none';
-    spiroPath.style.strokeDashoffset = spiroLen * (1 - f);
-    void spiroPath.getBoundingClientRect();
-    spiroPath.style.transition = '';
-  } else {
-    spiroPath.style.strokeDashoffset = spiroLen * (1 - f);
+    void spiroSvg.getBoundingClientRect();
+    chords.forEach(function(c){ c.el.style.transition = ''; });
   }
 }
 var spT = null;

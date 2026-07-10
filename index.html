@@ -25,7 +25,6 @@
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
 html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:var(--bg);
@@ -60,14 +59,22 @@ b.lit{text-shadow:0 0 9px rgba(240,115,107,.6)}
 /* ---------- scroll trail ---------- */
 main{position:relative}
 #trail{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible}
-#trailPath{
-  fill:none;stroke:var(--coral);stroke-width:4;
+/* glow = a wide soft under-stroke (a CSS filter here re-rasterizes the whole
+   path on every scroll frame and makes the first scroll feel sticky) */
+#trailGlow{fill:none;stroke:rgba(240,115,107,.26);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+#trailPath{fill:none;stroke:var(--coral);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+#tipArrow{
+  fill:none;stroke:var(--coral);stroke-width:3.5;
   stroke-linecap:round;stroke-linejoin:round;
-  vector-effect:non-scaling-stroke;
-  filter:drop-shadow(0 0 5px rgba(240,115,107,.65));
+  filter:drop-shadow(0 0 4px rgba(240,115,107,.6));
 }
+#tipArrow.rest{animation:tipPulse 1.7s ease-in-out infinite alternate}
+@keyframes tipPulse{from{opacity:.55}to{opacity:1}}
 .layer{position:relative;z-index:1}
-@media (prefers-reduced-motion: reduce){#trailPath{stroke-dashoffset:0 !important}}
+@media (prefers-reduced-motion: reduce){
+  #trailPath,#trailGlow{stroke-dashoffset:0 !important}
+  #tipArrow{display:none}
+}
 
 /* ---------- hero (centered) ---------- */
 .hero{
@@ -77,16 +84,6 @@ main{position:relative}
   text-align:center;
   padding:40px 22px calc(96px + env(safe-area-inset-bottom));
 }
-#scrollCue{
-  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
-  filter:drop-shadow(0 0 5px rgba(240,115,107,.6));
-  transition:opacity .55s ease;
-  animation:cueBob 1.8s ease-in-out infinite alternate;
-  pointer-events:none;
-}
-#scrollCue.gone{opacity:0}
-@keyframes cueBob{from{transform:translate(-50%,0)}to{transform:translate(-50%,7px)}}
-@media (prefers-reduced-motion: reduce){#scrollCue{animation:none}}
 .logo{
   font-family:var(--fdisp);font-weight:700;
   font-size:clamp(46px,11vw,96px);line-height:1;
@@ -137,10 +134,9 @@ main{position:relative}
 <body>
 <main>
   <svg id="trail" aria-hidden="true">
-    <defs>
-      <mask id="wordMask" maskUnits="userSpaceOnUse"></mask>
-    </defs>
-    <path id="trailPath" mask="url(#wordMask)"/>
+    <path id="trailGlow"/>
+    <path id="trailPath"/>
+    <path id="tipArrow" d="M -7 -9 L 0 0 L 7 -9"/>
   </svg>
 
   <div class="layer">
@@ -151,11 +147,6 @@ main{position:relative}
       <div class="cta">
         <a class="btn" href="#about">About us</a>
         <a class="btn" href="apply.html">Apply here</a>
-      </div>
-      <div id="scrollCue" aria-hidden="true">
-        <svg viewBox="0 0 24 64" width="24" height="64">
-          <path d="M12 2 V50 M4 42 L12 52 L20 42" fill="none" stroke="#f0736b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
       </div>
     </section>
 
@@ -201,16 +192,19 @@ var io = new IntersectionObserver(function(es){
 document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
 
 /* ---------- the trail ----------
- * Built at runtime from the real layout: it swings side to side, UNDERLINES
- * each big question as it passes, vanishes inside the highlighted <b> words
- * (mask holes) and lights them up as the tip passes, then runs into the
- * final Apply button and ignites it. Draws in with scroll. */
+ * One lazy hand-drawn meander, built at runtime from the real layout. It
+ * drops straight down from under the buttons (the resting stub + arrowhead
+ * IS the scroll cue), sweeps past each section, and runs into the final
+ * Apply button, igniting it. The arrowhead rides the drawn tip and melts
+ * away into the line as you scroll. Red words it happens to cross glow. */
 var svg = document.getElementById('trail');
 var path = document.getElementById('trailPath');
-var mask = document.getElementById('wordMask');
+var glowPath = document.getElementById('trailGlow');
+var tip = document.getElementById('tipArrow');
 var endBtn = document.getElementById('finalApply');
 var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 var len = 0, wordHits = [], built = false;
+var STUB = 64;   /* resting drawn length — the scroll cue */
 
 function pageBox(el){
   var x = 0, y = 0, n = el;
@@ -239,64 +233,39 @@ function buildTrail(){
   var eb = pageBox(endBtn);
   var narrow = W < 720;
 
-  /* the trail grows out of the scroll cue's arrow */
-  var cue = pageBox(document.getElementById('scrollCue'));
+  /* straight drop from under the hero buttons, then a few big lazy sweeps:
+     glide beneath each heading, drift across the open space, repeat. */
+  var cta = pageBox(document.querySelector('.hero .cta'));
+  var sx = W / 2;
+  var sy = cta.y + cta.h + 44;
   var pts = [
-    {x: cue.x + cue.w / 2, y: cue.y + 2},
-    {x: cue.x + cue.w / 2, y: cue.y + 60}
+    {x: sx, y: sy},
+    {x: sx, y: sy + 96}
   ];
 
   rows.forEach(function(row){
-    var lab = row.querySelector('.qlabel');
-    var b = pageBox(lab);
-    var uy = b.y + b.h + (narrow ? 10 : 14);
+    var b = pageBox(row.querySelector('.qlabel'));
     var leftSide = (b.x + b.w / 2) < W / 2;
-    var x1 = leftSide ? b.x - 26 : b.x + b.w + 26;   /* enter from the outside edge */
-    var x2 = leftSide ? b.x + b.w + 28 : b.x - 28;   /* exit toward the middle */
-    var prev = pts[pts.length - 1];
-
-    /* big swing via the opposite side of the page, then dive to the underline.
-       Shoulder points pin the underline flat so the spline can't lift it into the text. */
-    pts.push({x: leftSide ? W * 0.9 : W * 0.1, y: (prev.y + uy) / 2});
-    pts.push({x: x1 - (leftSide ? 70 : -70), y: uy - 48});
-    pts.push({x: x1, y: uy});
-    pts.push({x: x1 + (x2 - x1) * 0.3, y: uy + 8});
-    pts.push({x: x2 - (x2 - x1) * 0.3, y: uy + 8});
-    pts.push({x: x2, y: uy});
-
-    /* pass through the highlighted words of this row's answer */
-    var words = Array.prototype.slice.call(row.querySelectorAll('.a b'));
-    var hit = words.length > 2 ? [words[0], words[words.length - 1]] : words;
-    hit.forEach(function(word){
-      var wb = pageBox(word);
-      pts.push({x: wb.x + wb.w / 2, y: wb.y + wb.h / 2});
-    });
+    var uy = b.y + b.h + (narrow ? 20 : 26);
+    pts.push({x: b.x + b.w * 0.5, y: uy});
+    pts.push({x: leftSide ? W * 0.8 : W * 0.2, y: uy + (narrow ? 170 : 190)});
   });
 
-  /* glide down, pass through the closing "apply.", then run into the button */
+  /* one last lazy S down into the button */
   var ex = eb.x + eb.w / 2, ey = eb.y - 4;
   var last = pts[pts.length - 1];
-  var closerWord = document.querySelector('.closer b');
-  pts.push({x: W * 0.8, y: (last.y + ey) / 2});
-  if (closerWord){
-    var cw = pageBox(closerWord);
-    pts.push({x: cw.x + cw.w / 2, y: cw.y + cw.h / 2});
-  } else {
-    pts.push({x: ex, y: ey - 90});
-  }
+  pts.push({x: ex - W * 0.16, y: (last.y + ey) / 2});
   pts.push({x: ex, y: ey});
-  path.setAttribute('d', smoothPath(pts));
+  var d = smoothPath(pts);
+  path.setAttribute('d', d);
+  glowPath.setAttribute('d', d);
 
-  /* mask: hide the line inside every highlighted word (plus the button area) */
-  var holes = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>';
-  var bs = Array.prototype.slice.call(document.querySelectorAll('main b'));
+  /* highlighted words the line happens to cross glow as the tip passes */
   var rects = [];
-  bs.forEach(function(el){
+  Array.prototype.slice.call(document.querySelectorAll('main b')).forEach(function(el){
     var r = pageBox(el);
-    holes += '<rect x="' + (r.x - 4) + '" y="' + (r.y - 3) + '" width="' + (r.w + 8) + '" height="' + (r.h + 6) + '" fill="#000" rx="4"/>';
     rects.push({el: el, x: r.x - 6, y: r.y - 5, w: r.w + 12, h: r.h + 10});
   });
-  mask.innerHTML = holes;
 
   /* where along the path does the tip hit each word / the button? */
   len = path.getTotalLength();
@@ -314,6 +283,7 @@ function buildTrail(){
   wordHits.push({el: endBtn, len: (btnLen != null ? btnLen : len - 6)});
 
   path.style.strokeDasharray = len;
+  glowPath.style.strokeDasharray = len;
   built = true;
   draw();
 }
@@ -325,11 +295,18 @@ function draw(){
   var doc = document.documentElement;
   var max = (doc.scrollHeight - doc.clientHeight) || 1;
   var p = reduce ? 1 : Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
-  var drawn = len * p;
+  var drawn = reduce ? len : Math.max(STUB, len * p);
   path.style.strokeDashoffset = len - drawn;
+  glowPath.style.strokeDashoffset = len - drawn;
   wordHits.forEach(function(h){ h.el.classList.toggle('lit', drawn >= h.len); });
-  var cueEl = document.getElementById('scrollCue');
-  if (cueEl) cueEl.classList.toggle('gone', p > 0.012);
+
+  /* the arrowhead rides the drawn tip, then melts away into the line */
+  var tp = path.getPointAtLength(drawn);
+  var tb = path.getPointAtLength(Math.max(0, drawn - 8));
+  var ang = Math.atan2(tp.y - tb.y, tp.x - tb.x) * 180 / Math.PI - 90;
+  tip.setAttribute('transform', 'translate(' + tp.x.toFixed(1) + ' ' + tp.y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
+  tip.style.opacity = p < 0.02 ? 1 : Math.max(0, 1 - (p - 0.02) / 0.1);
+  tip.classList.toggle('rest', p < 0.004);
 }
 function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(draw); } }
 
@@ -341,6 +318,12 @@ window.addEventListener('resize', onResize, {passive:true});
 buildTrail();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildTrail);
 window.addEventListener('load', buildTrail);
+
+/* About us: just a gentle nudge, not a jump to the section */
+document.querySelector('.cta a[href="#about"]').addEventListener('click', function(e){
+  e.preventDefault();
+  window.scrollBy({top: Math.round(window.innerHeight * 0.62), behavior: 'smooth'});
+});
 })();
 </script>
 </body>
