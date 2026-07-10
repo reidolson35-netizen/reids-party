@@ -100,6 +100,30 @@ textarea.inp{resize:vertical;min-height:150px;line-height:1.5}
 .nav{display:flex;gap:12px;margin-top:28px;align-items:center}
 .nav .spacer{flex:1}
 
+/* ---------- social handle picker ---------- */
+.srow{display:flex;gap:10px;align-items:stretch;position:relative}
+.pbtn{
+  flex:0 0 auto;white-space:nowrap;background:#fffdf4;
+  border:2px solid var(--line);border-radius:14px;color:var(--rose-bold);
+  font-family:var(--fsans);font-weight:700;font-size:15px;padding:0 16px;
+  cursor:pointer;transition:border-color .15s;
+}
+.pbtn::after{content:"\25BE";margin-left:8px;opacity:.65;font-size:12px}
+.pbtn:hover{border-color:var(--coral)}
+.sinp{flex:1 1 auto;min-width:0}
+.pmenu{
+  display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:20;
+  min-width:180px;background:#fffdf4;border:2px solid var(--line);
+  border-radius:14px;box-shadow:0 12px 28px rgba(228,114,106,.18);overflow:hidden;
+}
+.pmenu.open{display:block}
+.popt{
+  display:block;width:100%;text-align:left;background:none;border:none;
+  color:var(--ink);font-family:var(--fsans);font-weight:600;font-size:16px;
+  padding:12px 16px;cursor:pointer;
+}
+.popt:hover{background:rgba(240,115,107,.10);color:var(--rose-bold)}
+
 /* ---------- file zone ---------- */
 .fzone{
   border:2px dashed var(--line);border-radius:16px;padding:30px 20px;text-align:center;
@@ -151,7 +175,7 @@ var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
 var QUESTIONS = [
   {id:'email',     type:'email',    label:'Email', helper:'Only used to contact you about the party.', req:true, ph:'you@example.com'},
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
-  {id:'socials',   type:'text',     label:'Link your socials', helper:'Public if possible — Instagram, X, TikTok, whatever actually shows who you are.', req:true, ph:'instagram.com/yourhandle'},
+  {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'example: yourhandle'},
   {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only.', req:true, ph:'20+'},
   {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters.', req:true, min:10, max:140},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
@@ -276,6 +300,8 @@ function buildQuestion(q, idx){
     if (q.max) input.maxLength = q.max;
   } else if (q.type === 'files'){
     input = buildFileZone(q, errEl, s);
+  } else if (q.type === 'social'){
+    input = buildSocial(q, idx, errEl, s);
   } else {
     input = el('input','inp');
     input.type = (q.type === 'age') ? 'number' : (q.type === 'email' ? 'email' : (q.type === 'tel' ? 'tel' : 'text'));
@@ -306,7 +332,7 @@ function buildQuestion(q, idx){
   s.appendChild(nav);
 
   /* wire input events */
-  if (q.type !== 'files'){
+  if (q.type !== 'files' && q.type !== 'social'){
     input.addEventListener('input', function(){
       answers[q.id] = input.value;
       saveDraft();
@@ -385,6 +411,58 @@ function buildFileZone(q, errEl, section){
   wrap.appendChild(zone);
   wrap.appendChild(fi);
   wrap.appendChild(thumbs);
+  return wrap;
+}
+
+/* ---------- social handle: pick a platform, then just type the handle.
+   answers.socials becomes a real profile URL so it's clickable on review. */
+var SOCIALS = [
+  {name:'Instagram', base:'https://instagram.com/'},
+  {name:'TikTok',    base:'https://tiktok.com/@'},
+  {name:'Facebook',  base:'https://facebook.com/'},
+  {name:'x.com',     base:'https://x.com/'},
+  {name:'YouTube',   base:'https://youtube.com/@'}
+];
+
+function buildSocial(q, idx, errEl, section){
+  var wrap = el('div');
+  var row = el('div','srow');
+  var pick = el('button','pbtn','Select platform'); pick.type = 'button';
+  var menu = el('div','pmenu');
+  var input = el('input','inp sinp');
+  input.type = 'text';
+  input.autocapitalize = 'off'; input.autocomplete = 'off'; input.spellcheck = false;
+  if (q.ph) input.placeholder = q.ph;
+  var chosen = null;
+
+  function commit(){
+    var handle = input.value.trim().replace(/^@+/,'').trim();
+    answers[q.id] = (chosen && handle) ? (chosen.base + handle) : '';
+    saveDraft();
+    refreshState(q, section);
+  }
+
+  SOCIALS.forEach(function(p){
+    var opt = el('button','popt', esc(p.name)); opt.type = 'button';
+    opt.addEventListener('click', function(){
+      chosen = p;
+      pick.textContent = p.name; pick.classList.add('sel');
+      menu.classList.remove('open');
+      commit(); input.focus();
+    });
+    menu.appendChild(opt);
+  });
+
+  pick.addEventListener('click', function(){ menu.classList.toggle('open'); });
+  document.addEventListener('click', function(ev){ if (!row.contains(ev.target)) menu.classList.remove('open'); });
+
+  input.addEventListener('input', commit);
+  input.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); advance(q, idx, errEl); }
+  });
+
+  row.appendChild(pick); row.appendChild(input); row.appendChild(menu);
+  wrap.appendChild(row);
   return wrap;
 }
 
