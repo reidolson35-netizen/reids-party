@@ -28,7 +28,7 @@
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;overflow-x:hidden}
+html,body{margin:0;padding:0;overflow-x:clip}
 body{
   background:var(--bg);
   color:var(--ink);
@@ -57,14 +57,13 @@ body{
 #progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
 #progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
 
-/* ---------- string-art star: chords appear step by step, the full 70-point
-   star only weaves together on the final screen. No CSS filters — the glow is
-   a soft under-stroke per chord, which keeps phones smooth. ---------- */
+/* ---------- 8-point flower: separate petal strokes appear step by step; a
+   ring joins the petal tips on the final screen. No CSS filters — the glow is
+   a soft under-stroke per petal, which keeps phones smooth. ---------- */
 #spiro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:0;pointer-events:none;overflow:visible}
-#spiro line{stroke:var(--coral);stroke-linecap:round;transition:stroke-dashoffset .55s ease}
-#spiro line.glow{stroke:rgba(240,115,107,.15);stroke-width:6.5}
-#spiro line.core{stroke-width:1.8;opacity:.6}
-@media (prefers-reduced-motion: reduce){#spiro line{transition:none}}
+#spiro path{fill:none;stroke:var(--coral);stroke-linecap:round;stroke-linejoin:round;transition:stroke-dashoffset .6s ease}
+#spiro path.glow{stroke:rgba(240,115,107,.10);stroke-width:7}
+#spiro path.core{stroke-width:2;opacity:.38}
 
 /* ---------- steps ---------- */
 .step{display:none}
@@ -76,7 +75,6 @@ body{
   animation:fadeUp .4s ease both;
 }
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){.step.on{animation:none}}
 
 /* ---------- intro ---------- */
 .step.intro{align-items:center;text-align:center}
@@ -456,60 +454,74 @@ function advance(q, idx, errEl){
   else show(idx + 1);
 }
 
-/* string-art star (70 points): each step reveals a handful of separate
-   chords; the star polygon {70/17} only weaves fully together on the
-   thank-you screen. */
+/* 8-point flower: 16 separate petal strokes (two rotated layers of 8) appear
+   a few per step; on the thank-you screen a ring joins the petal tips —
+   that's when everything connects. */
 var spiroSvg = document.getElementById('spiro');
-var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-var SP_N = 70, SP_K = 17;
-var chords = [];
+/* runs everywhere — Reduce Motion phones were getting a static page */
+var reduceMotion = false;
+var petals = [];
+var SP_TOTAL = 16;
+
+function petalD(cx, cy, rIn, rOut, rot){
+  var d = '';
+  for (var i = 0; i <= 36; i++){
+    var phi = -Math.PI / 8 + (Math.PI / 4) * i / 36;
+    var rr = rIn + (rOut - rIn) * Math.cos(4 * phi);
+    var a = rot + phi;
+    d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1);
+  }
+  return d;
+}
 
 function buildSpiro(){
   if (!spiroSvg) return;
   var vw = window.innerWidth, vh = window.innerHeight;
   spiroSvg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
   spiroSvg.innerHTML = '';
-  chords = [];
-  var cx = vw / 2, cy = vh / 2;
-  var R0 = Math.min(vw, vh) * 0.47;
-  var pts = [];
-  for (var i = 0; i < SP_N; i++){
-    var a = -Math.PI / 2 + i * 2 * Math.PI / SP_N;
-    pts.push({x: cx + R0 * Math.cos(a), y: cy + R0 * Math.sin(a)});
-  }
+  petals = [];
   var NS = 'http://www.w3.org/2000/svg';
-  var v = 0;
-  for (var j = 0; j < SP_N; j++){
-    var a1 = pts[v], a2 = pts[(v + SP_K) % SP_N];
-    var L = Math.hypot(a2.x - a1.x, a2.y - a1.y);
+  var cx = vw / 2, cy = vh / 2;
+  var R = Math.min(vw, vh) * 0.47;
+
+  function addStroke(d, idx, isRing){
     ['glow', 'core'].forEach(function(cls){
-      var ln = document.createElementNS(NS, 'line');
-      ln.setAttribute('x1', a1.x.toFixed(1)); ln.setAttribute('y1', a1.y.toFixed(1));
-      ln.setAttribute('x2', a2.x.toFixed(1)); ln.setAttribute('y2', a2.y.toFixed(1));
-      ln.setAttribute('class', cls);
-      ln.style.strokeDasharray = L;
-      ln.style.strokeDashoffset = L;
-      spiroSvg.appendChild(ln);
-      chords.push({el: ln, len: L, idx: j});
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('class', cls);
+      spiroSvg.appendChild(p);
+      var L = p.getTotalLength();
+      p.style.strokeDasharray = L;
+      p.style.strokeDashoffset = L;
+      petals.push({el: p, len: L, idx: idx, ring: !!isRing});
     });
-    v = (v + SP_K) % SP_N;
   }
+
+  var k;
+  for (k = 0; k < 8; k++) addStroke(petalD(cx, cy, R * 0.55, R, k * Math.PI / 4), k, false);
+  for (k = 0; k < 8; k++) addStroke(petalD(cx, cy, R * 0.34, R * 0.62, k * Math.PI / 4 + Math.PI / 8), 8 + k, false);
+  /* the ring that connects the petal tips — final step only */
+  addStroke('M ' + (cx + R) + ',' + cy +
+    ' A ' + R + ' ' + R + ' 0 1 1 ' + (cx - R) + ' ' + cy +
+    ' A ' + R + ' ' + R + ' 0 1 1 ' + (cx + R) + ' ' + cy, SP_TOTAL, true);
+
   applySpiro(true);
 }
 
 function applySpiro(instant){
-  if (!chords.length) return;
+  if (!petals.length) return;
   var f = reduceMotion ? 1 : (step + 1) / (TOTAL + 2);   /* intro starts it, success completes it */
-  var show = Math.round(f * SP_N);
-  chords.forEach(function(c){
-    var on = c.idx < show;
+  var show = Math.round(f * SP_TOTAL);
+  var done = step >= TOTAL + 1;
+  petals.forEach(function(c){
+    var on = c.ring ? (done || reduceMotion) : c.idx < show;
     if (instant) c.el.style.transition = 'none';
-    else c.el.style.transitionDelay = on ? ((c.idx % 7) * 70) + 'ms' : '0ms';
+    else c.el.style.transitionDelay = on ? ((c.idx % 5) * 90) + 'ms' : '0ms';
     c.el.style.strokeDashoffset = on ? 0 : c.len;
   });
   if (instant){
     void spiroSvg.getBoundingClientRect();
-    chords.forEach(function(c){ c.el.style.transition = ''; });
+    petals.forEach(function(c){ c.el.style.transition = ''; });
   }
 }
 var spT = null;

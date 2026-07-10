@@ -25,7 +25,9 @@
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;overflow-x:hidden}
+/* overflow-x:hidden here would force main-thread scrolling (the sticky first
+   scroll); clip keeps compositor scrolling and still hides overflow */
+html,body{margin:0;padding:0;overflow-x:clip}
 body{
   background:var(--bg);
   color:var(--rose);
@@ -54,27 +56,23 @@ b.lit{text-shadow:0 0 9px rgba(240,115,107,.6)}
   from{box-shadow:0 0 10px rgba(240,115,107,.45), 0 6px 16px rgba(228,114,106,.16)}
   to{box-shadow:0 0 26px rgba(240,115,107,.85), 0 6px 16px rgba(228,114,106,.16)}
 }
-@media (prefers-reduced-motion: reduce){.btn.lit{animation:none;box-shadow:0 0 18px rgba(240,115,107,.6)}}
 
 /* ---------- scroll trail ---------- */
 main{position:relative}
 #trail{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible}
-/* glow = a wide soft under-stroke (a CSS filter here re-rasterizes the whole
-   path on every scroll frame and makes the first scroll feel sticky) */
-#trailGlow{fill:none;stroke:rgba(240,115,107,.26);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
-#trailPath{fill:none;stroke:var(--coral);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+#trailPath{
+  fill:none;stroke:var(--coral);stroke-width:4;
+  stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 5px rgba(240,115,107,.65));
+}
 #tipArrow{
   fill:none;stroke:var(--coral);stroke-width:3.5;
   stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 0 4px rgba(240,115,107,.6));
+  filter:drop-shadow(0 0 5px rgba(240,115,107,.65));
 }
 #tipArrow.rest{animation:tipPulse 1.7s ease-in-out infinite alternate}
 @keyframes tipPulse{from{opacity:.55}to{opacity:1}}
 .layer{position:relative;z-index:1}
-@media (prefers-reduced-motion: reduce){
-  #trailPath,#trailGlow{stroke-dashoffset:0 !important}
-  #tipArrow{display:none}
-}
 
 /* ---------- hero (centered) ---------- */
 .hero{
@@ -128,13 +126,11 @@ main{position:relative}
 
 .reveal{opacity:0;transform:translateY(40px);transition:opacity .8s ease, transform .8s ease}
 .reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion: reduce){.reveal{transition:none;opacity:1;transform:none}}
 </style>
 </head>
 <body>
 <main>
   <svg id="trail" aria-hidden="true">
-    <path id="trailGlow"/>
     <path id="trailPath"/>
     <path id="tipArrow" d="M -7 -9 L 0 0 L 7 -9"/>
   </svg>
@@ -199,10 +195,11 @@ document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
  * away into the line as you scroll. Red words it happens to cross glow. */
 var svg = document.getElementById('trail');
 var path = document.getElementById('trailPath');
-var glowPath = document.getElementById('trailGlow');
 var tip = document.getElementById('tipArrow');
 var endBtn = document.getElementById('finalApply');
-var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* the trail IS the page — it runs everywhere, including reduce-motion devices
+   (an iPhone with Reduce Motion on was getting a fully static page) */
+var reduce = false;
 var len = 0, wordHits = [], built = false;
 var STUB = 64;   /* resting drawn length — the scroll cue */
 
@@ -233,32 +230,52 @@ function buildTrail(){
   var eb = pageBox(endBtn);
   var narrow = W < 720;
 
-  /* straight drop from under the hero buttons, then a few big lazy sweeps:
-     glide beneath each heading, drift across the open space, repeat. */
-  var cta = pageBox(document.querySelector('.hero .cta'));
-  var sx = W / 2;
-  var sy = cta.y + cta.h + 44;
-  var pts = [
-    {x: sx, y: sy},
-    {x: sx, y: sy + 96}
-  ];
-
-  rows.forEach(function(row){
-    var b = pageBox(row.querySelector('.qlabel'));
-    var leftSide = (b.x + b.w / 2) < W / 2;
-    var uy = b.y + b.h + (narrow ? 20 : 26);
-    pts.push({x: b.x + b.w * 0.5, y: uy});
-    pts.push({x: leftSide ? W * 0.8 : W * 0.2, y: uy + (narrow ? 170 : 190)});
+  /* Reid's hand-drawn route, anchored to the real layout: drop from under the
+     buttons, dip under "What is this?", sweep right beneath the first answer,
+     one big self-crossing loop around the second answer, exit down the left
+     edge past "What's the catch?", bulge right around its answer, hook into
+     the Apply button. */
+  var r = rows.map(function(row){
+    return {h: pageBox(row.querySelector('.qlabel')), a: pageBox(row.querySelector('.a'))};
   });
-
-  /* one last lazy S down into the button */
+  var hero = pageBox(document.querySelector('.hero'));
   var ex = eb.x + eb.w / 2, ey = eb.y - 4;
-  var last = pts[pts.length - 1];
-  pts.push({x: ex - W * 0.16, y: (last.y + ey) / 2});
-  pts.push({x: ex, y: ey});
-  var d = smoothPath(pts);
-  path.setAttribute('d', d);
-  glowPath.setAttribute('d', d);
+  /* on desktop the flip-row heading sits BESIDE the answer, so only clamp
+     against it when the layout is stacked */
+  var loopTop = narrow ? Math.max(r[1].h.y + r[1].h.h + 8, r[1].a.y - 16) : r[1].a.y - 26;
+
+  /* resting stub sits at the bottom of the first screen and points STRAIGHT
+     down — three collinear points keep the spline vertical through it */
+  var sy0 = hero.y + hero.h - 96;
+  var pts = [
+    {x: W * 0.5, y: sy0},
+    {x: W * 0.5, y: sy0 + 74},
+    {x: W * 0.5, y: sy0 + 150},
+    /* soft smile under "What is this?" */
+    {x: r[0].h.x + r[0].h.w * 0.6, y: r[0].h.y + r[0].h.h + 34},
+    /* glide right under the first answer */
+    {x: r[0].a.x + r[0].a.w * 0.5, y: r[0].a.y + r[0].a.h + 78},
+    /* broad rounded U at the right edge, returning into the loop */
+    {x: Math.min(W - 36, r[0].a.x + r[0].a.w + 110), y: r[0].a.y + r[0].a.h + 190},
+    {x: r[0].a.x + r[0].a.w * 0.35, y: loopTop - 46},
+    /* loop around the second answer (self-crossing, like the sketch) */
+    {x: r[1].a.x + r[1].a.w * 0.2, y: loopTop},
+    {x: Math.max(18, r[1].a.x - 55), y: r[1].a.y + r[1].a.h * 0.45},
+    {x: r[1].a.x + r[1].a.w * 0.4, y: r[1].a.y + r[1].a.h + 30},
+    {x: Math.min(W - 60, r[1].a.x + r[1].a.w + 60), y: r[1].a.y - 6},
+    /* exit down-left, descend the left edge past the catch heading */
+    {x: W * 0.3, y: r[1].a.y + r[1].a.h + 180},
+    {x: Math.max(16, W * 0.05), y: r[2].h.y - 30},
+    {x: Math.max(14, W * 0.048), y: r[2].h.y + r[2].h.h + 40},
+    /* sweep right under the heading, around the answer's right side */
+    {x: r[2].h.x + r[2].h.w * 0.95, y: r[2].h.y + r[2].h.h + 90},
+    {x: Math.min(W - 28, r[2].a.x + r[2].a.w + 55), y: r[2].a.y + r[2].a.h * 0.62},
+    {x: r[2].a.x + r[2].a.w * 0.45, y: r[2].a.y + r[2].a.h + 115},
+    /* hook into the button from the right */
+    {x: Math.min(W - 24, eb.x + eb.w + 60), y: (r[2].a.y + r[2].a.h + ey) / 2 + 50},
+    {x: eb.x + eb.w * 0.78, y: ey}
+  ];
+  path.setAttribute('d', smoothPath(pts));
 
   /* highlighted words the line happens to cross glow as the tip passes */
   var rects = [];
@@ -283,21 +300,22 @@ function buildTrail(){
   wordHits.push({el: endBtn, len: (btnLen != null ? btnLen : len - 6)});
 
   path.style.strokeDasharray = len;
-  glowPath.style.strokeDasharray = len;
   built = true;
   draw();
 }
 
-var ticking = false;
-function draw(){
-  ticking = false;
-  if (!built) return;
+/* scroll sets a target; the tip glides toward it and eases to a stop */
+var target = STUB, current = STUB, animating = false;
+
+function targetLen(){
   var doc = document.documentElement;
   var max = (doc.scrollHeight - doc.clientHeight) || 1;
-  var p = reduce ? 1 : Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
-  var drawn = reduce ? len : Math.max(STUB, len * p);
+  var p = Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
+  return Math.max(STUB, len * p);
+}
+
+function render(drawn){
   path.style.strokeDashoffset = len - drawn;
-  glowPath.style.strokeDashoffset = len - drawn;
   wordHits.forEach(function(h){ h.el.classList.toggle('lit', drawn >= h.len); });
 
   /* the arrowhead rides the drawn tip, then melts away into the line */
@@ -305,10 +323,30 @@ function draw(){
   var tb = path.getPointAtLength(Math.max(0, drawn - 8));
   var ang = Math.atan2(tp.y - tb.y, tp.x - tb.x) * 180 / Math.PI - 90;
   tip.setAttribute('transform', 'translate(' + tp.x.toFixed(1) + ' ' + tp.y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
-  tip.style.opacity = p < 0.02 ? 1 : Math.max(0, 1 - (p - 0.02) / 0.1);
-  tip.classList.toggle('rest', p < 0.004);
+  var frac = (drawn - STUB) / Math.max(1, len - STUB);
+  tip.style.opacity = frac < 0.005 ? 1 : Math.max(0, 1 - (frac - 0.005) / 0.09);
+  tip.classList.toggle('rest', frac < 0.002);
 }
-function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(draw); } }
+
+function tick(){
+  current += (target - current) * 0.085;
+  if (Math.abs(target - current) < 0.5){ current = target; animating = false; }
+  render(current);
+  if (animating) requestAnimationFrame(tick);
+}
+
+function draw(){ /* snap to the correct state on (re)build */
+  if (!built) return;
+  if (reduce){ target = current = len; render(len); return; }
+  target = current = targetLen();
+  render(current);
+}
+
+function onScroll(){
+  if (!built || reduce) return;
+  target = targetLen();
+  if (!animating){ animating = true; requestAnimationFrame(tick); }
+}
 
 var rsT = null;
 function onResize(){ clearTimeout(rsT); rsT = setTimeout(buildTrail, 180); }
