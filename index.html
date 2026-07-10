@@ -241,14 +241,20 @@ function buildTrail(){
   ];
 
   /* one mostly-straight line down the middle with three IDENTICAL gentle
-     bends — evenly spaced, equal amplitude, alternating left/right/left to
-     match the question sides — then straight into the button */
+     bends. The wave is cosine-eased between quarter points, so the slope is
+     perfectly vertical at every junction — the straight stub melts into the
+     first bend (and the wave into the button run) with no visible seam. */
   var amp = narrow ? W * 0.13 : Math.min(W * 0.11, 130);
   var yTop = sy0 + 150, yBot = ey - 150;
-  for (var i = 1; i <= 3; i++){
-    pts.push({x: W * 0.5 + (i % 2 ? -amp : amp), y: yTop + (yBot - yTop) * i / 4});
+  var waveX = [0, -amp, amp, -amp, 0];
+  for (var seg = 0; seg < 4; seg++){
+    var x0 = W * 0.5 + waveX[seg], x1 = W * 0.5 + waveX[seg + 1];
+    var y0 = yTop + (yBot - yTop) * seg / 4, y1 = yTop + (yBot - yTop) * (seg + 1) / 4;
+    for (var s = 1; s <= 14; s++){
+      var t = s / 14;
+      pts.push({x: x0 + (x1 - x0) * (1 - Math.cos(Math.PI * t)) / 2, y: y0 + (y1 - y0) * t});
+    }
   }
-  pts.push({x: W * 0.5, y: yBot});
   pts.push({x: ex, y: ey});
   path.setAttribute('d', smoothPath(pts));
 
