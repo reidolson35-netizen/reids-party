@@ -172,6 +172,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "working": str(a.get("working", "")).strip(),
                 "contrarian": str(a.get("contrarian", "")).strip(),
                 "want": str(a.get("want", "")).strip(),
+                "ref": str(p.get("ref", ""))[:300],
                 "images": save_images(p.get("images") or [], n, "img", 5),
                 "id_images": [],
             }

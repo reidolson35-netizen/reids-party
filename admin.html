@@ -178,6 +178,7 @@ function esc(s){
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function pad(n){ return String(n).padStart(3,'0'); }
+function fmtRef(s){ return String(s).replace(/https?:\/\//g,'').replace(/\/+$/,''); }
 
 function setView(unlocked){
   $('lock').classList.toggle('on', !unlocked);
@@ -302,6 +303,7 @@ function render(){
       qa('Working on', esc(r.working)) +
       qa('Contrarian take', esc(r.contrarian)) +
       (r.want ? qa('What they want', esc(r.want)) : '') +
+      (r.ref ? qa('Found us via', esc(fmtRef(r.ref))) : '') +
       (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
       (r.id_images && r.id_images.length ? qa('ID (legacy uploads)', imgBlock(r.id_images, true)) : '') +
       '<div class="ts">' + fmtTs(r.ts) + '</div>';

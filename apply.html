@@ -9,6 +9,16 @@
 <meta property="og:title" content="Reid's Parties">
 <meta property="og:description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
 <meta name="theme-color" content="#fbf4c7">
+<script>
+/* first-touch source: remember how they originally found us (src= tag or external referrer) */
+try{
+  var _q=new URLSearchParams(location.search).get('src');
+  var _r=document.referrer||'';
+  if(_r.indexOf(location.origin)===0)_r='';
+  var _v=(_q?'src='+_q+(_r?' · ':''):'')+_r;
+  if(_v&&!localStorage.getItem('rp_src'))localStorage.setItem('rp_src',_v);
+}catch(e){}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://use.typekit.net/yvb0zhe.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -642,6 +652,7 @@ function submit(){
   var payload = {
     hp: document.getElementById('hp').value || '',
     ua: navigator.userAgent,
+    ref: (function(){ try{ return (localStorage.getItem('rp_src')||document.referrer||'').slice(0,300); }catch(e){ return ''; } })(),
     ts: new Date().toISOString(),
     answers: {
       email: String(answers.email||'').trim(),
