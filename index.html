@@ -3,28 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>REID'S PARTY — Application</title>
-<meta name="description" content="Applications are open. Invite only. No fee. 18+.">
-<meta property="og:title" content="REID'S PARTY">
-<meta property="og:description" content="Applications are open. Invite only. No fee. 18+.">
+<title>REID'S PARTIES — Austin, Texas</title>
+<meta name="description" content="Application based. Austin, Texas. Invite only. No fee. 20+.">
+<meta property="og:title" content="REID'S PARTIES">
+<meta property="og:description" content="Application based. Austin, Texas. Invite only. No fee. 20+.">
 <meta name="theme-color" content="#0b0c10">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0c10'/%3E%3Crect x='4' y='4' width='56' height='56' rx='12' fill='none' stroke='%236f9ad8' stroke-width='3'/%3E%3Ctext x='32' y='44' font-family='Arial Black,Arial' font-size='30' font-style='italic' font-weight='900' fill='%23f6da7e' text-anchor='middle'%3ERP%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500..900;1,500..900&display=swap" rel="stylesheet">
-<script src="config.js"></script>
 <style>
 :root{
   --bg:#0b0c10;
   --blue:#6f9ad8;
   --blue-dim:rgba(111,154,216,.45);
   --yellow:#e9b352;
-  --yellow-dim:rgba(233,179,82,.45);
   --text:#eef1f7;
   --muted:#8e97ab;
-  --bad:#ff9c9c;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
 html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:radial-gradient(1100px 700px at 50% -8%, #13151d 0%, var(--bg) 58%) fixed, var(--bg);
@@ -34,14 +32,16 @@ body{
 }
 ::selection{background:var(--yellow);color:#111}
 
-/* ---------- neon primitives ---------- */
+/* ---------- neon primitives (match apply.html) ---------- */
 .np{
   border:2px solid var(--blue);
   border-radius:16px;
   box-shadow:0 0 16px rgba(111,154,216,.22), 0 0 44px rgba(111,154,216,.10), inset 0 0 22px rgba(111,154,216,.05);
 }
 .btn{
-  appearance:none;
+  display:inline-block;
+  text-decoration:none;
+  text-align:center;
   background:rgba(233,179,82,.04);
   border:2px solid var(--yellow);
   color:var(--yellow);
@@ -52,12 +52,11 @@ body{
   text-transform:uppercase;
   cursor:pointer;
   box-shadow:0 0 14px rgba(233,179,82,.22);
-  transition:box-shadow .15s ease, transform .15s ease, opacity .15s ease;
+  transition:box-shadow .15s ease, transform .15s ease;
   touch-action:manipulation;
 }
 .btn:hover{box-shadow:0 0 26px rgba(233,179,82,.5);transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
-.btn:disabled{opacity:.28;box-shadow:none;cursor:not-allowed;transform:none}
 .btn.ghost{
   border-color:var(--blue-dim);
   color:var(--blue);
@@ -66,11 +65,7 @@ body{
 }
 .btn.ghost:hover{box-shadow:0 0 16px rgba(111,154,216,.35)}
 
-/* ---------- progress ---------- */
-#progress{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(233,179,82,.12);z-index:50}
-#progressFill{height:100%;width:0%;background:var(--yellow);box-shadow:0 0 10px rgba(233,179,82,.8);transition:width .35s ease}
-
-/* ---------- ambient glow layer ---------- */
+/* ---------- ambient glow layer (match apply.html) ---------- */
 #glow{position:fixed;inset:0;z-index:0;pointer-events:none}
 main{position:relative;z-index:1}
 .gdot{
@@ -90,18 +85,12 @@ main{position:relative;z-index:1}
 #touchDot{transition:opacity .5s ease}
 @media (prefers-reduced-motion: reduce){#glow{display:none}}
 
-/* ---------- steps ---------- */
-.step{display:none}
-.step.on{
-  display:flex;flex-direction:column;justify-content:center;
+/* ---------- hero ---------- */
+.hero{
   min-height:100dvh;max-width:680px;margin:0 auto;
+  display:flex;flex-direction:column;justify-content:center;
   padding:40px 22px calc(40px + env(safe-area-inset-bottom));
-  animation:fadeUp .4s ease both;
 }
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){.step.on{animation:none}}
-
-/* ---------- intro ---------- */
 .logoPanel{display:inline-block;padding:20px 26px 24px;margin-bottom:26px;align-self:flex-start;max-width:100%;animation:pulse 4s ease-in-out infinite alternate}
 @keyframes pulse{
   from{box-shadow:0 0 16px rgba(111,154,216,.22), 0 0 44px rgba(111,154,216,.10), inset 0 0 22px rgba(111,154,216,.05)}
@@ -109,453 +98,70 @@ main{position:relative;z-index:1}
 }
 @media (prefers-reduced-motion: reduce){.logoPanel{animation:none}}
 .logo{
-  font:italic 900 clamp(30px,9vw,80px)/0.95 'Archivo',sans-serif;
+  font:italic 900 clamp(28px,8.5vw,72px)/0.95 'Archivo',sans-serif;
   color:var(--blue);
   text-shadow:4px 4px 0 rgba(233,179,82,.92), 0 0 28px rgba(111,154,216,.45);
   letter-spacing:-.01em;
   white-space:nowrap;
 }
-.subTitle{
-  font:italic 800 15px 'Archivo',sans-serif;
-  letter-spacing:.55em;color:var(--blue);
+.tag{
+  font:italic 800 15px/1.6 'Archivo',sans-serif;
+  letter-spacing:.32em;color:var(--blue);
   text-shadow:0 0 14px rgba(111,154,216,.6);
-  text-transform:uppercase;margin:0 0 18px 4px;
+  text-transform:uppercase;margin:0 0 34px 4px;
 }
-.introCopy{font:italic 500 17px/1.6 'Archivo';color:var(--muted);max-width:520px;margin:0 0 34px 4px}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin-left:4px}
 
-/* ---------- question ---------- */
+/* ---------- about sections ---------- */
+.block{max-width:680px;margin:0 auto;padding:64px 22px;scroll-margin-top:12px}
+.block:last-of-type{padding-bottom:120px}
 .qnum{
   font:italic 800 13px 'Archivo';letter-spacing:.45em;
   color:var(--yellow);text-shadow:0 0 12px rgba(233,179,82,.5);
 }
-.qopt{color:var(--blue);letter-spacing:.3em;margin-left:10px;font:italic 700 11px 'Archivo'}
-.qlabel{font:italic 800 clamp(24px,5.6vw,32px)/1.18 'Archivo';margin:16px 0 8px}
-.qhelp{font:italic 500 15px/1.5 'Archivo';color:var(--muted);margin:0 0 22px}
-.inp{
-  width:100%;
-  background:#0a0c12;
-  border:2px solid var(--blue-dim);
-  border-radius:12px;
-  color:var(--text);
-  font:italic 600 19px 'Archivo',sans-serif;
-  padding:16px;
-  outline:none;
-  transition:border-color .15s, box-shadow .15s;
-}
-.inp:focus{border-color:var(--blue);box-shadow:0 0 16px rgba(111,154,216,.3)}
-.inp::placeholder{color:#525b6e;font-style:italic}
-textarea.inp{resize:vertical;min-height:160px;line-height:1.5}
-.meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;min-height:20px}
-.err{font:italic 600 14px 'Archivo';color:var(--bad);min-height:18px}
-.cnt{font:italic 700 13px 'Archivo';letter-spacing:.1em;color:var(--muted)}
-.cnt.ok{color:var(--yellow);text-shadow:0 0 8px rgba(233,179,82,.5)}
-.nav{display:flex;gap:12px;margin-top:28px;align-items:center}
-.nav .spacer{flex:1}
-
-/* ---------- file zone ---------- */
-.fzone{
-  border:2px dashed var(--blue-dim);
-  border-radius:14px;padding:30px 20px;text-align:center;
-  color:var(--blue);cursor:pointer;
-  font:italic 700 15px 'Archivo';letter-spacing:.14em;text-transform:uppercase;
-  transition:border-color .15s, box-shadow .15s;
-}
-.fzone:hover{border-color:var(--blue);box-shadow:0 0 16px rgba(111,154,216,.25)}
-.thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.thumb{position:relative;width:86px;height:86px;border-radius:10px;overflow:hidden;border:2px solid var(--yellow-dim);box-shadow:0 0 10px rgba(233,179,82,.18)}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb button{
-  position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:7px;
-  border:1px solid var(--yellow);background:rgba(11,12,16,.85);color:var(--yellow);
-  font:800 13px/1 'Archivo';cursor:pointer;padding:0;
-}
-
-/* ---------- success ---------- */
-.bigYellow{
-  font:italic 900 clamp(34px,8vw,58px)/1.05 'Archivo';
-  color:var(--yellow);
-  text-shadow:0 0 22px rgba(233,179,82,.55), 3px 3px 0 rgba(111,154,216,.55);
-  margin:0 0 26px;
-}
-.outro{font:italic 500 17px/1.6 'Archivo';color:var(--muted);max-width:480px}
-
-/* ---------- overlay ---------- */
-#busy{
-  display:none;position:fixed;inset:0;z-index:100;
-  background:rgba(11,12,16,.88);
-  align-items:center;justify-content:center;flex-direction:column;gap:18px;
-}
-#busy.on{display:flex}
-#busyText{font:italic 800 16px 'Archivo';letter-spacing:.4em;color:var(--yellow);text-shadow:0 0 14px rgba(233,179,82,.6);text-transform:uppercase;animation:blink 1.1s ease-in-out infinite alternate}
-@keyframes blink{from{opacity:.45}to{opacity:1}}
-.hp{position:absolute;left:-6000px;top:-6000px;height:1px;width:1px;opacity:0}
+.qlabel{font:italic 800 clamp(26px,6vw,36px)/1.15 'Archivo';margin:14px 0 14px}
+.copy{font:italic 500 17px/1.65 'Archivo';color:var(--muted);margin:0 0 18px}
+.block .btn{margin-top:10px}
 </style>
 </head>
 <body>
-<div id="progress"><div id="progressFill"></div></div>
 <div id="glow" aria-hidden="true"><div class="gdot" id="hoverDot"></div><div class="gdot" id="touchDot"></div></div>
-<input class="hp" id="hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
-<main id="app"></main>
-<div id="busy"><div id="busyText">Transmitting</div></div>
+<main>
+  <section class="hero">
+    <div class="np logoPanel"><h1 class="logo" style="margin:0">Reid&rsquo;s&nbsp;Parties</h1></div>
+    <p class="tag">Application based, Austin, Texas</p>
+    <div class="cta">
+      <a class="btn" href="apply.html">Apply here</a>
+      <a class="btn ghost" href="#about">About us</a>
+    </div>
+  </section>
+
+  <section class="block" id="about">
+    <div class="qnum">01</div>
+    <h2 class="qlabel">What is this?</h2>
+    <p class="copy">We throw recurring parties for interesting young people in Austin. Food and drinks are provided, and there&rsquo;s no application fee.</p>
+  </section>
+
+  <section class="block">
+    <div class="qnum">02</div>
+    <h2 class="qlabel">Who&rsquo;s gonna be there?</h2>
+    <p class="copy">We read every application to make sure all attendees are genuinely unique people. We want people who have big, unique goals, and a willingness to be different.</p>
+  </section>
+
+  <section class="block">
+    <div class="qnum">03</div>
+    <h2 class="qlabel">What&rsquo;s the catch?</h2>
+    <p class="copy">Reid here (from reidsparty.com). I will be completely honest: I&rsquo;m/we&rsquo;re doing this for two reasons. The first and biggest is that I&rsquo;m looking for a life partner, as are some of my closest friends. We&rsquo;re relatively successful at a young age (22&ndash;23), and it&rsquo;s proven tough for us to find people that really share our values, beliefs about the world, and are within our age range. Thankfully, parties are a great way to get to know people.</p>
+    <p class="copy">That being said, it&rsquo;s important to me that people who come to our parties are comfortable and have a good time, so we stack the room with a healthy ratio of men and women. That&rsquo;s also why it&rsquo;s application only. I really don&rsquo;t want to waste anyone&rsquo;s time with boring or ill-intentioned people.</p>
+    <p class="copy">So if you&rsquo;re interested, and you think you&rsquo;d be a fit, please apply.</p>
+    <a class="btn" href="apply.html">Apply here</a>
+  </section>
+</main>
 
 <script>
 (function(){
 'use strict';
-
-var CFG = window.PARTY_CONFIG || {};
-var LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
-
-/* Questions mirror the original Google Form, plus mandatory age (18+) and mandatory ID. */
-var QUESTIONS = [
-  {id:'email',     type:'email',    label:'Email', helper:'Only used to contact you about the party.', req:true, ph:'you@example.com'},
-  {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
-  {id:'socials',   type:'text',     label:'Link your socials', helper:'Public if possible — Instagram, X, TikTok, whatever actually shows who you are.', req:true, ph:'instagram.com/yourhandle'},
-  {id:'age',       type:'age',      label:'What is your age?', helper:'18+ only. This gets verified at the last step.', req:true, ph:'18+'},
-  {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters. Make them count.', req:true, min:10, max:140},
-  {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
-  {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional — up to 5 images.', req:false, max:5},
-  {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
-  {id:'phone',     type:'tel',      label:'Phone number', helper:'If you’re fit, this is how we’ll contact you.', req:true, ph:'(555) 555-5555'},
-  {id:'id_images', type:'files',    label:'Upload a photo of your ID', helper:'18+ verification — any government-issued ID showing your date of birth. Seen only by Reid. Never shared, never public.', req:true, max:2, idmode:true}
-];
-var TOTAL = QUESTIONS.length;
-
-var answers = {};
-var fileStore = {images:[], id_images:[]};
-var step = 0;             /* 0 = intro, 1..TOTAL = questions, TOTAL+1 = success */
-var submitting = false;
-
-/* ---------- draft persistence (text answers only) ---------- */
-function saveDraft(){
-  try{ localStorage.setItem('rp_draft', JSON.stringify(answers)); }catch(e){}
-}
-function loadDraft(){
-  try{
-    var d = JSON.parse(localStorage.getItem('rp_draft') || 'null');
-    if (d && typeof d === 'object') answers = d;
-  }catch(e){}
-}
-function clearDraft(){ try{ localStorage.removeItem('rp_draft'); }catch(e){} }
-
-/* ---------- helpers ---------- */
-function el(tag, cls, html){
-  var n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (html !== undefined) n.innerHTML = html;
-  return n;
-}
-function esc(s){
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function validate(q){
-  var v = String(answers[q.id] == null ? '' : answers[q.id]).trim();
-  switch(q.type){
-    case 'email':
-      if (!v) return {ok:false, msg:''};
-      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? {ok:true} : {ok:false, msg:'That email doesn’t look right.'};
-    case 'age':
-      if (!v) return {ok:false, msg:''};
-      var n = parseInt(v,10);
-      if (isNaN(n) || n < 1 || n > 120) return {ok:false, msg:'Enter your real age.'};
-      if (n < 18) return {ok:false, msg:'18+ only. You must be 18 or older to apply.'};
-      return {ok:true};
-    case 'why':
-      if (v.length < (q.min||10)) return {ok:false, msg:''};
-      if (v.length > (q.max||140)) return {ok:false, msg:'Max ' + q.max + ' characters.'};
-      return {ok:true};
-    case 'tel':
-      if (!v) return {ok:false, msg:''};
-      return ((v.match(/\d/g)||[]).length >= 7) ? {ok:true} : {ok:false, msg:'That phone number looks short.'};
-    case 'files':
-      if (!q.req) return {ok:true};
-      return fileStore[q.id].length >= 1 ? {ok:true} : {ok:false, msg:''};
-    default:
-      return v.length > 0 ? {ok:true} : {ok:false, msg:''};
-  }
-}
-
-/* ---------- image compression ---------- */
-function loadImage(url){
-  return new Promise(function(res, rej){
-    var img = new Image();
-    img.onload = function(){ res(img); };
-    img.onerror = function(){ rej(new Error('unreadable image')); };
-    img.src = url;
-  });
-}
-function compressFile(f, maxDim, quality){
-  var url = URL.createObjectURL(f);
-  return loadImage(url).then(function(img){
-    var w = img.naturalWidth, h = img.naturalHeight;
-    var scale = Math.min(1, maxDim / Math.max(w, h));
-    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
-    var c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    c.getContext('2d').drawImage(img, 0, 0, w, h);
-    var dataUrl = c.toDataURL('image/jpeg', quality);
-    URL.revokeObjectURL(url);
-    return {
-      name: (f.name || 'image').replace(/\.[^.]+$/,'') + '.jpg',
-      type: 'image/jpeg',
-      data: dataUrl.split(',')[1],
-      thumb: dataUrl
-    };
-  }).catch(function(e){ URL.revokeObjectURL(url); throw e; });
-}
-
-/* ---------- build DOM ---------- */
-var app = document.getElementById('app');
-var fill = document.getElementById('progressFill');
-var sections = [];
-
-function buildIntro(){
-  var s = el('section','step');
-  var lp = el('div','np logoPanel');
-  lp.appendChild(el('div','logo',"Reid&rsquo;s&nbsp;Party"));
-  s.appendChild(lp);
-  s.appendChild(el('div','subTitle','Application'));
-  s.appendChild(el('p','introCopy','This should take 5&ndash;10 minutes. We want to know what kind of person you are. Our goal is to keep the room quality very high, without charging a fee. Please answer honestly.'));
-  var b = el('button','btn','Apply');
-  b.style.alignSelf = 'flex-start';
-  b.addEventListener('click', function(){ show(1); });
-  s.appendChild(b);
-  return s;
-}
-
-function buildQuestion(q, idx){
-  var s = el('section','step');
-  var head = el('div','qnum', pad2(idx) + (q.req ? '' : '<span class="qopt">Optional</span>'));
-  s.appendChild(head);
-  s.appendChild(el('h2','qlabel', esc(q.label)));
-  if (q.helper) s.appendChild(el('p','qhelp', esc(q.helper)));
-
-  var inputWrap = el('div');
-  var input = null, counter = null, errEl = el('div','err');
-
-  if (q.type === 'textarea' || q.type === 'why'){
-    input = el('textarea','inp');
-    input.rows = (q.type === 'why') ? 3 : 7;
-    if (q.max) input.maxLength = q.max;
-  } else if (q.type === 'files'){
-    input = buildFileZone(q, errEl, s);
-  } else {
-    input = el('input','inp');
-    input.type = (q.type === 'age') ? 'number' : (q.type === 'email' ? 'email' : (q.type === 'tel' ? 'tel' : 'text'));
-    if (q.type === 'age'){ input.min = 1; input.max = 120; input.inputMode = 'numeric'; }
-    if (q.type === 'email'){ input.autocapitalize = 'off'; input.inputMode = 'email'; }
-    if (q.type === 'tel'){ input.inputMode = 'tel'; }
-    input.autocomplete = ({email:'email', name:'name', phone:'tel'})[q.id] || 'off';
-  }
-  if (q.ph && input.tagName !== 'DIV') input.placeholder = q.ph;
-  inputWrap.appendChild(input);
-
-  var meta = el('div','meta');
-  meta.appendChild(errEl);
-  if (q.type === 'why'){
-    counter = el('div','cnt','0 / ' + q.max);
-    meta.appendChild(counter);
-  }
-  inputWrap.appendChild(meta);
-  s.appendChild(inputWrap);
-
-  var nav = el('div','nav');
-  var back = el('button','btn ghost','Back');
-  back.addEventListener('click', function(){ show(step - 1); });
-  var spacer = el('div','spacer');
-  var next = el('button','btn', idx === TOTAL ? 'Submit application' : 'Next');
-  next.addEventListener('click', function(){ advance(q, idx, errEl); });
-  nav.appendChild(back); nav.appendChild(spacer); nav.appendChild(next);
-  s.appendChild(nav);
-
-  /* wire input events */
-  if (q.type !== 'files'){
-    input.addEventListener('input', function(){
-      answers[q.id] = input.value;
-      saveDraft();
-      refreshState(q, s);
-    });
-    input.addEventListener('keydown', function(ev){
-      if (ev.key === 'Enter' && !ev.shiftKey){
-        ev.preventDefault();
-        advance(q, idx, errEl);
-      }
-    });
-  }
-
-  s._q = q;
-  s._input = input;
-  s._next = next;
-  s._counter = counter;
-  s._err = errEl;
-  return s;
-}
-
-function pad2(n){ return String(n).padStart(2,'0'); }
-
-function buildFileZone(q, errEl, section){
-  var wrap = el('div');
-  var zone = el('div','fzone', q.idmode ? 'Tap to add your ID photo' : 'Tap to add images');
-  var fi = document.createElement('input');
-  fi.type = 'file';
-  fi.accept = 'image/*';
-  fi.multiple = q.max > 1;
-  fi.style.display = 'none';
-  var thumbs = el('div','thumbs');
-
-  zone.addEventListener('click', function(){ fi.click(); });
-  fi.addEventListener('change', function(){
-    var list = Array.prototype.slice.call(fi.files || []);
-    fi.value = '';
-    var room = q.max - fileStore[q.id].length;
-    if (list.length > room){
-      list = list.slice(0, room);
-      errEl.textContent = 'Max ' + q.max + ' image' + (q.max>1?'s':'') + '.';
-    }
-    var maxDim = q.idmode ? 2200 : 1600;
-    var quality = q.idmode ? 0.9 : 0.82;
-    Promise.all(list.map(function(f){
-      return compressFile(f, maxDim, quality).catch(function(){ return null; });
-    })).then(function(items){
-      items.forEach(function(it){ if (it) fileStore[q.id].push(it); });
-      renderThumbs();
-      refreshState(q, section);
-    });
-  });
-
-  function renderThumbs(){
-    thumbs.innerHTML = '';
-    fileStore[q.id].forEach(function(it, i){
-      var t = el('div','thumb');
-      var img = document.createElement('img');
-      img.src = it.thumb;
-      img.alt = '';
-      t.appendChild(img);
-      var x = el('button', null, '×');
-      x.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        fileStore[q.id].splice(i,1);
-        renderThumbs();
-        refreshState(q, section);
-      });
-      t.appendChild(x);
-      thumbs.appendChild(t);
-    });
-    zone.textContent = fileStore[q.id].length >= q.max
-      ? (fileStore[q.id].length + ' / ' + q.max + ' added')
-      : (q.idmode ? 'Tap to add your ID photo' : 'Tap to add images') + (fileStore[q.id].length ? ' (' + fileStore[q.id].length + ' / ' + q.max + ')' : '');
-  }
-
-  wrap.appendChild(zone);
-  wrap.appendChild(fi);
-  wrap.appendChild(thumbs);
-  return wrap;
-}
-
-function buildSuccess(){
-  var s = el('section','step');
-  s.appendChild(el('h1','bigYellow','Thank you.'));
-  s.appendChild(el('p','outro','If you’re a fit, you’ll hear from us within the next seven days.'));
-  return s;
-}
-
-/* ---------- state / nav ---------- */
-function refreshState(q, section){
-  var v = validate(q);
-  var empty = (q.type === 'files') ? fileStore[q.id].length === 0
-                                   : !String(answers[q.id]||'').trim();
-  if (!q.req && empty){
-    section._next.textContent = 'Skip';
-    section._next.disabled = false;
-  } else {
-    section._next.textContent = (section._idx === TOTAL) ? 'Submit application' : 'Next';
-    section._next.disabled = !v.ok;
-  }
-  section._err.textContent = v.ok ? '' : (v.msg || '');
-  if (section._counter){
-    var len = String(answers[q.id]||'').trim().length;
-    section._counter.textContent = len + ' / ' + q.max;
-    section._counter.className = 'cnt' + ((len >= q.min && len <= q.max) ? ' ok' : '');
-  }
-}
-
-function advance(q, idx, errEl){
-  var v = validate(q);
-  var empty = (q.type === 'files') ? fileStore[q.id].length === 0
-                                   : !String(answers[q.id]||'').trim();
-  if (q.req || !empty){
-    if (!v.ok){ errEl.textContent = v.msg || 'This one’s required.'; return; }
-  }
-  if (idx === TOTAL) submit();
-  else show(idx + 1);
-}
-
-function show(i){
-  step = Math.max(0, Math.min(TOTAL + 1, i));
-  sections.forEach(function(s, j){ s.classList.toggle('on', j === step); });
-  fill.style.width = Math.round(100 * step / (TOTAL + 1)) + '%';
-  var s = sections[step];
-  if (s && s._q){
-    refreshState(s._q, s);
-    if (s._input && s._input.tagName !== 'DIV'){
-      if (s._input.value !== (answers[s._q.id]||'')) s._input.value = answers[s._q.id]||'';
-      setTimeout(function(){ try{ s._input.focus({preventScroll:false}); }catch(e){} }, 60);
-    }
-  }
-  window.scrollTo(0,0);
-}
-
-/* ---------- submit ---------- */
-function submit(){
-  if (submitting) return;
-  if (!ENDPOINT){
-    alert('Applications aren’t open yet — the submission endpoint isn’t configured. (Owner: see SETUP.md)');
-    return;
-  }
-  submitting = true;
-  var busy = document.getElementById('busy');
-  busy.classList.add('on');
-
-  var payload = {
-    hp: document.getElementById('hp').value || '',
-    ua: navigator.userAgent,
-    ts: new Date().toISOString(),
-    answers: {
-      email: String(answers.email||'').trim(),
-      name: String(answers.name||'').trim(),
-      socials: String(answers.socials||'').trim(),
-      age: String(answers.age||'').trim(),
-      why: String(answers.why||'').trim(),
-      working: String(answers.working||'').trim(),
-      contrarian: String(answers.contrarian||'').trim(),
-      phone: String(answers.phone||'').trim()
-    },
-    images: fileStore.images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; }),
-    id_images: fileStore.id_images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; })
-  };
-
-  fetch(ENDPOINT, {method:'POST', body: JSON.stringify(payload)})
-    .then(function(r){ return r.json(); })
-    .then(function(res){
-      busy.classList.remove('on');
-      submitting = false;
-      if (res && res.ok){
-        clearDraft();
-        show(TOTAL + 1);
-      } else {
-        var last = sections[TOTAL];
-        last._err.textContent = (res && res.error) ? res.error : 'Something broke. Try again.';
-      }
-    })
-    .catch(function(){
-      busy.classList.remove('on');
-      submitting = false;
-      sections[TOTAL]._err.textContent = 'Network error — your answers are safe, hit submit again.';
-    });
-}
-
-/* ---------- ambient glow: hover spreads from the button, touch halos the finger ---------- */
+/* ambient glow: hover spreads from the button, touch halos the finger (same as apply.html) */
 var glowLayer = document.getElementById('glow');
 var hoverDot = document.getElementById('hoverDot');
 var touchDot = document.getElementById('touchDot');
@@ -569,7 +175,7 @@ function snapDot(dot, x, y, s){
 
 if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches){
   var glowBtn = function(e, on){
-    var b = e.target && e.target.closest ? e.target.closest('button.btn:not(.ghost)') : null;
+    var b = e.target && e.target.closest ? e.target.closest('.btn:not(.ghost)') : null;
     if (!b || (e.relatedTarget && b.contains(e.relatedTarget))) return;
     if (on){
       var r = b.getBoundingClientRect();
@@ -613,20 +219,6 @@ document.addEventListener('touchmove', function(e){
 function touchOff(){ tOn = false; touchDot.style.opacity = '0'; }
 document.addEventListener('touchend', touchOff, {passive:true});
 document.addEventListener('touchcancel', touchOff, {passive:true});
-
-/* ---------- init ---------- */
-loadDraft();
-sections.push(buildIntro());
-QUESTIONS.forEach(function(q, i){
-  var s = buildQuestion(q, i + 1);
-  s._idx = i + 1;
-  sections.push(s);
-});
-sections.push(buildSuccess());
-sections.forEach(function(s){ app.appendChild(s); });
-var m = (location.hash || '').match(/^#q(\d+)$/);
-show(m ? Math.min(TOTAL, parseInt(m[1], 10)) : 0);
-
 })();
 </script>
 </body>

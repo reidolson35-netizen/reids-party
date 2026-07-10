@@ -281,8 +281,11 @@ function render(){
       qa('Why they want in', esc(r.why)) +
       qa('Working on', esc(r.working)) +
       qa('Contrarian take', esc(r.contrarian)) +
+      (r.want ? qa('What they want', esc(r.want)) : '') +
       (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
-      qa('ID — verify 18+', imgBlock(r.id_images, true) || '<span style="color:var(--bad);font:italic 700 14px Archivo">MISSING</span>') +
+      (r.id_check
+        ? qa('ID check — auto', '<span style="font:italic 700 14px Archivo;color:' + (/^VERIFIED/.test(r.id_check) ? '#9fd49f' : /^(FAILED|MISMATCH)/.test(r.id_check) ? 'var(--bad)' : '#e9b352') + '">' + esc(r.id_check) + '</span>')
+        : qa('ID — verify 20+', imgBlock(r.id_images, true) || '<span style="color:var(--bad);font:italic 700 14px Archivo">MISSING</span>')) +
       '<div class="ts">' + fmtTs(r.ts) + '</div>';
 
     var sel = card.querySelector('select.status');

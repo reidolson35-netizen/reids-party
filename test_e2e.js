@@ -6,9 +6,9 @@
  *   --remote-debugging-port=9222
  * Run: node test_e2e.js
  *
- * What it does: walks the real form in a real browser — intro → 10 questions
+ * What it does: walks the real form in a real browser — intro → 11 questions
  * (skips the optional image step, uploads a generated ID photo, checks the
- * under-18 gate) → submit → success screen → verifies the row via the API.
+ * under-20 gate) → submit → success screen → verifies the row via the API.
  * Also reports per-step horizontal overflow (layout regression guard).
  */
 'use strict';
@@ -107,8 +107,8 @@ async function activeStep() {
   await send('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 2, mobile: true
   });
-  await send('Page.navigate', { url: SITE });
-  await waitFor(`document.querySelectorAll('.step').length === 12`, 10000, 'app built');
+  await send('Page.navigate', { url: SITE + 'apply.html' });
+  await waitFor(`document.querySelectorAll('.step').length === 13`, 10000, 'app built');
   await sleep(700); // fonts
 
   // -- layout: no horizontal overflow on any step -----------------------------
@@ -138,12 +138,12 @@ async function activeStep() {
   await typeIntoActive('Jeri Athan');      await clickNext();           // 2 name
   await typeIntoActive('instagram.com/_reidolson'); await clickNext();  // 3 socials
 
-  // 4 age — under-18 gate first
-  await typeIntoActive('17');
+  // 4 age — under-20 gate first
+  await typeIntoActive('19');
   await sleep(100);
   const gateErr = await eval_(`document.querySelector('.step.on .err').textContent`);
   const gateDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
-  check('under-18 blocks NEXT with message', gateDisabled && /18/.test(gateErr), JSON.stringify(gateErr));
+  check('under-20 blocks NEXT with message', gateDisabled && /20/.test(gateErr), JSON.stringify(gateErr));
   await typeIntoActive('27'); await clickNext();
 
   // 5 why — char-count gate
@@ -163,11 +163,13 @@ async function activeStep() {
 
   await typeIntoActive('Most parties are bad because of the host, not the guests.');
   await clickNext();                                                    // 8 contrarian
-  await typeIntoActive('(555) 867-5309'); await clickNext();            // 9 phone
+  await typeIntoActive('Real friends, and maybe a partner.');
+  await clickNext();                                                    // 9 want
+  await typeIntoActive('(555) 867-5309'); await clickNext();            // 10 phone
 
-  // 10 ID — generate a JPEG in-page, set on the hidden file input
+  // 11 ID — generate a JPEG in-page, set on the hidden file input
   const idStep = await activeStep();
-  check('arrived at ID step (11)', idStep === 10 + 0 || idStep === 10, 'step=' + idStep);
+  check('arrived at ID step (12)', idStep === 11, 'step=' + idStep);
   await eval_(`(async function(){
     var c = document.createElement('canvas'); c.width = 600; c.height = 380;
     var x = c.getContext('2d');
@@ -201,8 +203,10 @@ async function activeStep() {
   check('row exists in store via API', !!row);
   if (row) {
     check('row fields round-trip', row.name === 'Jeri Athan' && row.age === 27 &&
-      row.email === 'jeri@test.com' && row.id_images.length === 1 && row.images.length === 0,
-      JSON.stringify({ name: row.name, age: row.age, ids: row.id_images.length }));
+      row.email === 'jeri@test.com' && /VERIFIED/.test(row.id_check || '') &&
+      (row.id_images || []).length === 0 && row.images.length === 0 &&
+      row.want === 'Real friends, and maybe a partner.',
+      JSON.stringify({ name: row.name, age: row.age, id_check: row.id_check, want: row.want }));
   }
 
   const fails = results.filter(r => !r.ok).length;

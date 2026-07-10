@@ -26,7 +26,7 @@ except OSError:
     TOKEN = "partypass"
 
 STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
-REQUIRED = ["email", "name", "socials", "age", "why", "working", "contrarian", "phone"]
+REQUIRED = ["email", "name", "socials", "age", "why", "working", "contrarian", "want", "phone"]
 
 
 def load_rows():
@@ -68,8 +68,24 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def end_headers(self):
+        # Dev server: never let the browser cache anything (a heuristically
+        # cached config.js once pointed a local test run at the live backend).
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_GET(self):
         u = urlparse(self.path)
+        if u.path == "/config.js":
+            # Serve a local override so pages served here NEVER post to the
+            # live Apps Script backend (config.js in the repo points at prod).
+            body = b'window.PARTY_CONFIG = { ENDPOINT: "/exec" };\n'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if u.path != "/exec":
             return super().do_GET()
         q = parse_qs(u.query)
@@ -117,8 +133,8 @@ class Handler(SimpleHTTPRequestHandler):
             age = int(str(a.get("age", "")).strip())
         except ValueError:
             age = 0
-        if age < 18:
-            return self._json({"ok": False, "error": "18+ only."})
+        if age < 20:
+            return self._json({"ok": False, "error": "20+ only."})
         if not p.get("id_images"):
             return self._json({"ok": False, "error": "ID photo is required."})
         why = str(a.get("why", "")).strip()
@@ -140,8 +156,11 @@ class Handler(SimpleHTTPRequestHandler):
                 "why": why,
                 "working": str(a.get("working", "")).strip(),
                 "contrarian": str(a.get("contrarian", "")).strip(),
+                "want": str(a.get("want", "")).strip(),
                 "images": save_images(p.get("images") or [], n, "img", 5),
-                "id_images": save_images(p.get("id_images") or [], n, "id", 2),
+                # IDs are never persisted — mirrors the live backend's in-memory auto-verify
+                "id_images": [],
+                "id_check": "VERIFIED 20+ (mock)",
             }
             rows.append(row)
             save_rows(rows)
