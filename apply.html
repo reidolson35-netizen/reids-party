@@ -211,19 +211,18 @@ var QUESTIONS = [
   {id:'email',     type:'email',    label:'Email', helper:'Only used to contact you about the party.', req:true, ph:'you@example.com'},
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
   {id:'socials',   type:'text',     label:'Link your socials', helper:'Public if possible — Instagram, X, TikTok, whatever actually shows who you are.', req:true, ph:'instagram.com/yourhandle'},
-  {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only. This gets verified at the last step.', req:true, ph:'20+'},
+  {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only.', req:true, ph:'20+'},
   {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters. Make them count.', req:true, min:10, max:140},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
   {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional — up to 5 images.', req:false, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
   {id:'want',      type:'textarea', label:'What do you want?', helper:'Answer this however you’d like.', req:true},
-  {id:'phone',     type:'tel',      label:'Phone number', helper:'If you’re fit, this is how we’ll contact you.', req:true, ph:'(555) 555-5555'},
-  {id:'id_images', type:'files',    label:'Upload a photo of your ID', helper:'20+ verification — any government-issued ID showing your date of birth. Checked by an automated verifier — no human sees it, and it isn’t kept after the check.', req:true, max:2, idmode:true}
+  {id:'phone',     type:'tel',      label:'Phone number', helper:'If you’re fit, this is how we’ll contact you.', req:true, ph:'(555) 555-5555'}
 ];
 var TOTAL = QUESTIONS.length;
 
 var answers = {};
-var fileStore = {images:[], id_images:[]};
+var fileStore = {images:[]};
 var step = 0;             /* 0 = intro, 1..TOTAL = questions, TOTAL+1 = success */
 var submitting = false;
 
@@ -397,7 +396,7 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 
 function buildFileZone(q, errEl, section){
   var wrap = el('div');
-  var zone = el('div','fzone', q.idmode ? 'Tap to add your ID photo' : 'Tap to add images');
+  var zone = el('div','fzone', 'Tap to add images');
   var fi = document.createElement('input');
   fi.type = 'file';
   fi.accept = 'image/*';
@@ -414,8 +413,7 @@ function buildFileZone(q, errEl, section){
       list = list.slice(0, room);
       errEl.textContent = 'Max ' + q.max + ' image' + (q.max>1?'s':'') + '.';
     }
-    var maxDim = q.idmode ? 2200 : 1600;
-    var quality = q.idmode ? 0.9 : 0.82;
+    var maxDim = 1600, quality = 0.82;
     Promise.all(list.map(function(f){
       return compressFile(f, maxDim, quality).catch(function(){ return null; });
     })).then(function(items){
@@ -445,7 +443,7 @@ function buildFileZone(q, errEl, section){
     });
     zone.textContent = fileStore[q.id].length >= q.max
       ? (fileStore[q.id].length + ' / ' + q.max + ' added')
-      : (q.idmode ? 'Tap to add your ID photo' : 'Tap to add images') + (fileStore[q.id].length ? ' (' + fileStore[q.id].length + ' / ' + q.max + ')' : '');
+      : 'Tap to add images' + (fileStore[q.id].length ? ' (' + fileStore[q.id].length + ' / ' + q.max + ')' : '');
   }
 
   wrap.appendChild(zone);
@@ -533,8 +531,7 @@ function submit(){
       want: String(answers.want||'').trim(),
       phone: String(answers.phone||'').trim()
     },
-    images: fileStore.images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; }),
-    id_images: fileStore.id_images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; })
+    images: fileStore.images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; })
   };
 
   fetch(ENDPOINT, {method:'POST', body: JSON.stringify(payload)})

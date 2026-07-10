@@ -2,10 +2,8 @@
  * REID'S PARTY — backend (Google Apps Script Web App)
  *
  * Endpoints:
- *  - POST (no token): accepts an application, auto-verifies the ID photo
- *    in-memory (Gemini vision — the ID is never stored anywhere), saves the
- *    optional images to a private Drive folder, appends a row to a private
- *    Google Sheet, emails you.
+ *  - POST (no token): accepts an application, saves optional images to a
+ *    private Drive folder, appends a row to a private Google Sheet, emails you.
  *  - GET ?action=list&token=…: returns every application as JSON (admin page).
  *  - POST {action:'setStatus', token, n, status}: updates a row's status.
  *
@@ -86,14 +84,12 @@ function doGet(e){
       var vals = sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
       for (var i = 0; i < vals.length; i++){
         var v = vals[i];
-        var idcol = String(v[12] || '');
         rows.push({
           n: v[0], ts: v[1], status: v[2], name: v[3], age: v[4],
           email: v[5], phone: String(v[6]).replace(/^'/, ''), socials: v[7],
           why: v[8], working: v[9], contrarian: v[10],
           images: splitLines_(v[11]),
-          id_images: idcol.indexOf('http') === 0 ? splitLines_(idcol) : [],  // pre-2026-07 rows: Drive links
-          id_check: idcol.indexOf('http') === 0 ? '' : idcol,
+          id_images: splitLines_(v[12]),   // pre-2026-07 rows only: Drive links
           want: v[14] || ''
         });
       }
@@ -127,14 +123,8 @@ function submit_(p){
   }
   var age = parseInt(a.age, 10);
   if (!(age >= 20)) return json_({ok:false, error:'20+ only.'});
-  if (!p.id_images || !p.id_images.length) return json_({ok:false, error:'ID photo is required.'});
   var why = String(a.why).trim();
   if (why.length < 10 || why.length > 140) return json_({ok:false, error:'"Why" must be 10–140 characters.'});
-
-  // Verify the ID before taking the lock (the vision call can take seconds).
-  // ID photos are checked in-memory and NEVER saved anywhere — the form
-  // promises applicants no human sees them and nothing is kept.
-  var idCheck = verifyId_(p.id_images, age);
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -150,7 +140,7 @@ function submit_(p){
       n, new Date(), 'PENDING',
       String(a.name).trim(), age, String(a.email).trim(), "'" + String(a.phone).trim(),
       String(a.socials).trim(), why, String(a.working).trim(), String(a.contrarian).trim(),
-      imgUrls.join('\n'), idCheck, String(p.ua || ''), String(a.want).trim()
+      imgUrls.join('\n'), '' /* ID column kept for pre-July rows */, String(p.ua || ''), String(a.want).trim()
     ]);
 
     if (NOTIFY_EMAIL){
@@ -162,7 +152,6 @@ function submit_(p){
           'WANT:\n' + a.want + '\n\n' +
           'WORKING ON:\n' + a.working + '\n\n' +
           'CONTRARIAN:\n' + a.contrarian + '\n\n' +
-          'ID check: ' + idCheck + '\n' +
           'Socials: ' + a.socials + '\n' +
           'Email: ' + a.email + '\n' +
           'Phone: ' + a.phone + '\n\n' +
@@ -198,44 +187,6 @@ function saveImages_(arr, n, tag, cap){
     urls.push('https://drive.google.com/file/d/' + file.id + '/view');
   }
   return urls;
-}
-
-/* ID auto-verification — Gemini vision reads the DOB off the ID and compares
- * it to the claimed age. The image exists only inside this request; it is
- * never written to Drive, the Sheet, or anywhere else. Needs the script
- * property GEMINI_API_KEY. Any failure degrades to an UNVERIFIED verdict —
- * an application must never be lost because the checker hiccuped. */
-function verifyId_(idImages, claimedAge){
-  var key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-  if (!key) return 'UNVERIFIED (GEMINI_API_KEY not set)';
-  var parts = [{text:
-    'These are photos of a government-issued ID uploaded to age-verify a party application. ' +
-    'The applicant claims to be ' + claimedAge + ' years old. Today is ' +
-    new Date().toISOString().slice(0, 10) + '. Reply with strict JSON only: ' +
-    '{"dob_visible":boolean,"age_from_id":number|null,"looks_like_real_id":boolean} ' +
-    'where age_from_id is the age in whole years computed from the date of birth shown.'}];
-  for (var i = 0; i < Math.min(idImages.length, 2); i++){
-    var b64 = String(idImages[i].data || '');
-    if (b64.indexOf(',') >= 0) b64 = b64.split(',').pop();
-    if (b64) parts.push({inline_data:{mime_type: idImages[i].type || 'image/jpeg', data: b64}});
-  }
-  if (parts.length === 1) return 'UNVERIFIED (no image data)';
-  try{
-    var res = UrlFetchApp.fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
-      {method:'post', contentType:'application/json', muteHttpExceptions:true,
-       payload: JSON.stringify({contents:[{parts:parts}],
-         generationConfig:{temperature:0, response_mime_type:'application/json'}})});
-    if (res.getResponseCode() !== 200) return 'UNVERIFIED (verifier HTTP ' + res.getResponseCode() + ')';
-    var v = JSON.parse(JSON.parse(res.getContentText()).candidates[0].content.parts[0].text);
-    if (!v.dob_visible || v.age_from_id == null) return 'UNVERIFIED (DOB not readable)';
-    if (v.age_from_id < 20) return 'FAILED: ID shows ' + v.age_from_id + ' (under 20)';
-    if (Math.abs(v.age_from_id - claimedAge) > 1) return 'MISMATCH: claimed ' + claimedAge + ', ID shows ' + v.age_from_id;
-    if (!v.looks_like_real_id) return 'UNVERIFIED (ID authenticity unclear)';
-    return 'VERIFIED 20+ (auto — ID shows ' + v.age_from_id + ')';
-  } catch(err){
-    return 'UNVERIFIED (verifier error)';
-  }
 }
 
 function setStatus_(p){

@@ -135,8 +135,6 @@ class Handler(SimpleHTTPRequestHandler):
             age = 0
         if age < 20:
             return self._json({"ok": False, "error": "20+ only."})
-        if not p.get("id_images"):
-            return self._json({"ok": False, "error": "ID photo is required."})
         why = str(a.get("why", "")).strip()
         if not (10 <= len(why) <= 140):
             return self._json({"ok": False, "error": '"Why" must be 10-140 characters.'})
@@ -158,9 +156,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "contrarian": str(a.get("contrarian", "")).strip(),
                 "want": str(a.get("want", "")).strip(),
                 "images": save_images(p.get("images") or [], n, "img", 5),
-                # IDs are never persisted — mirrors the live backend's in-memory auto-verify
                 "id_images": [],
-                "id_check": "VERIFIED 20+ (mock)",
             }
             rows.append(row)
             save_rows(rows)

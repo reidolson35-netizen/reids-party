@@ -6,9 +6,9 @@
  *   --remote-debugging-port=9222
  * Run: node test_e2e.js
  *
- * What it does: walks the real form in a real browser — intro → 11 questions
- * (skips the optional image step, uploads a generated ID photo, checks the
- * under-20 gate) → submit → success screen → verifies the row via the API.
+ * What it does: walks the real form in a real browser — intro → 10 questions
+ * (skips the optional image step, checks the under-20 gate) → submit →
+ * success screen → verifies the row via the API.
  * Also reports per-step horizontal overflow (layout regression guard).
  */
 'use strict';
@@ -108,7 +108,7 @@ async function activeStep() {
     width: 390, height: 844, deviceScaleFactor: 2, mobile: true
   });
   await send('Page.navigate', { url: SITE + 'apply.html' });
-  await waitFor(`document.querySelectorAll('.step').length === 13`, 10000, 'app built');
+  await waitFor(`document.querySelectorAll('.step').length === 12`, 10000, 'app built');
   await sleep(700); // fonts
 
   // -- layout: no horizontal overflow on any step -----------------------------
@@ -165,27 +165,9 @@ async function activeStep() {
   await clickNext();                                                    // 8 contrarian
   await typeIntoActive('Real friends, and maybe a partner.');
   await clickNext();                                                    // 9 want
-  await typeIntoActive('(555) 867-5309'); await clickNext();            // 10 phone
-
-  // 11 ID — generate a JPEG in-page, set on the hidden file input
-  const idStep = await activeStep();
-  check('arrived at ID step (12)', idStep === 11, 'step=' + idStep);
-  await eval_(`(async function(){
-    var c = document.createElement('canvas'); c.width = 600; c.height = 380;
-    var x = c.getContext('2d');
-    x.fillStyle = '#888'; x.fillRect(0,0,600,380);
-    x.fillStyle = '#fff'; x.font = 'bold 40px sans-serif';
-    x.fillText('FAKE ID — DOB 1999', 40, 200);
-    var blob = await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.9); });
-    var f = new File([blob], 'id.jpg', {type: 'image/jpeg'});
-    var dt = new DataTransfer(); dt.items.add(f);
-    var inp = document.querySelector('.step.on input[type=file]');
-    inp.files = dt.files;
-    inp.dispatchEvent(new Event('change', {bubbles:true}));
-    return true;
-  })()`, true);
-  await waitFor(`document.querySelectorAll('.step.on .thumb').length === 1`, 8000, 'ID thumbnail appears');
-  check('ID upload produces thumbnail', true);
+  await typeIntoActive('(555) 867-5309');                               // 10 phone — last question
+  const lastStep = await activeStep();
+  check('arrived at last step (10, phone)', lastStep === 10, 'step=' + lastStep);
 
   const submitLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
   check('final button says SUBMIT', /submit/i.test(submitLabel), submitLabel);
@@ -203,10 +185,9 @@ async function activeStep() {
   check('row exists in store via API', !!row);
   if (row) {
     check('row fields round-trip', row.name === 'Jeri Athan' && row.age === 27 &&
-      row.email === 'jeri@test.com' && /VERIFIED/.test(row.id_check || '') &&
-      (row.id_images || []).length === 0 && row.images.length === 0 &&
+      row.email === 'jeri@test.com' && row.images.length === 0 &&
       row.want === 'Real friends, and maybe a partner.',
-      JSON.stringify({ name: row.name, age: row.age, id_check: row.id_check, want: row.want }));
+      JSON.stringify({ name: row.name, age: row.age, want: row.want }));
   }
 
   const fails = results.filter(r => !r.ok).length;
