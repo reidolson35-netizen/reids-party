@@ -1,4 +1,14 @@
 User-agent: *
 Allow: /
 
+# ChatGPT search index + live citation fetches
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
 Sitemap: https://reidsparty.com/sitemap.xml
