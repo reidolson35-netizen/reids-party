@@ -226,18 +226,8 @@ function buildTrail(){
   var W = main.offsetWidth, H = main.offsetHeight;
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
-  var rows = Array.prototype.slice.call(document.querySelectorAll('#about .qa-row'));
   var eb = pageBox(endBtn);
   var narrow = W < 720;
-
-  /* Reid's hand-drawn route, anchored to the real layout: drop from under the
-     buttons, dip under "What is this?", sweep right beneath the first answer,
-     one big self-crossing loop around the second answer, exit down the left
-     edge past "What's the catch?", bulge right around its answer, hook into
-     the Apply button. */
-  var r = rows.map(function(row){
-    return {h: pageBox(row.querySelector('.qlabel')), a: pageBox(row.querySelector('.a'))};
-  });
   var hero = pageBox(document.querySelector('.hero'));
   var ex = eb.x + eb.w / 2, ey = eb.y - 4;
 
@@ -250,23 +240,15 @@ function buildTrail(){
     {x: W * 0.5, y: sy0 + 150}
   ];
 
-  /* one mostly-straight line down the middle, bending gently toward each
-     question as it passes, then into the button. The spacing guard keeps
-     every bend at least 240px below the previous one so the curve stays lazy
-     on short, wide windows. */
+  /* one mostly-straight line down the middle with three IDENTICAL gentle
+     bends — evenly spaced, equal amplitude, alternating left/right/left to
+     match the question sides — then straight into the button */
   var amp = narrow ? W * 0.13 : Math.min(W * 0.11, 130);
-  var bends = [];
-  var prevY = sy0 + 150;
-  r.forEach(function(row, i){
-    var leftSide = narrow ? (i % 2 === 0) : (row.h.x + row.h.w / 2) < W / 2;
-    var by = Math.max(row.h.y + row.h.h * 0.5, prevY + 240);
-    bends.push({x: W * 0.5 + (leftSide ? -amp : amp), y: by});
-    prevY = by;
-  });
-  /* midpoint guide into the first bend so the stub exits without a wobble */
-  pts.push({x: (W * 0.5 + bends[0].x) / 2, y: (sy0 + 150 + bends[0].y) / 2});
-  bends.forEach(function(b){ pts.push(b); });
-  pts.push({x: W * 0.5, y: Math.max(ey - 120, prevY + 200)});
+  var yTop = sy0 + 150, yBot = ey - 150;
+  for (var i = 1; i <= 3; i++){
+    pts.push({x: W * 0.5 + (i % 2 ? -amp : amp), y: yTop + (yBot - yTop) * i / 4});
+  }
+  pts.push({x: W * 0.5, y: yBot});
   pts.push({x: ex, y: ey});
   path.setAttribute('d', smoothPath(pts));
 
