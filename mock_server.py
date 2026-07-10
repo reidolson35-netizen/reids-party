@@ -106,7 +106,20 @@ class Handler(SimpleHTTPRequestHandler):
 
         if p.get("action") == "setStatus":
             return self._set_status(p)
+        if p.get("action") == "delete":
+            return self._delete(p)
         return self._submit(p)
+
+    def _delete(self, p):
+        if p.get("token") != TOKEN:
+            return self._json({"ok": False, "error": "bad token"})
+        with LOCK:
+            rows = load_rows()
+            kept = [r for r in rows if str(r.get("n")) != str(p.get("n"))]
+            if len(kept) == len(rows):
+                return self._json({"ok": False, "error": "applicant not found"})
+            save_rows(kept)
+            return self._json({"ok": True})
 
     def _set_status(self, p):
         if p.get("token") != TOKEN:

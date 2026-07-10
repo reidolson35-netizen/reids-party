@@ -3,71 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>REID'S PARTY — Application</title>
-<meta name="description" content="Applications are open. Invite only. No fee. 20+.">
-<meta property="og:title" content="REID'S PARTY">
-<meta property="og:description" content="Applications are open. Invite only. No fee. 20+.">
-<meta name="theme-color" content="#faf6ef">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23faf6ef'/%3E%3Crect x='4' y='4' width='56' height='56' rx='12' fill='none' stroke='%23e9b352' stroke-width='3'/%3E%3Ctext x='32' y='44' font-family='Arial Black,Arial' font-size='30' font-style='italic' font-weight='900' fill='%232b2620' text-anchor='middle'%3ERP%3C/text%3E%3C/svg%3E">
+<title>Reid's Parties — Application</title>
+<meta name="description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
+<meta property="og:title" content="Reid's Parties">
+<meta property="og:description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
+<meta name="theme-color" content="#fbf4c7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500..900;1,500..900&display=swap" rel="stylesheet">
+<!-- Fallback faces (warm, until real Quiche is active). -->
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&family=Fraunces:opsz,wght@9..144,400..900&display=swap" rel="stylesheet">
+<!-- QUICHE: paste your Adobe Fonts web-project link here to switch to real Quiche.
+     <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css"> -->
 <script src="config.js"></script>
 <style>
 :root{
-  --bg:#faf6ef;
-  --ink:#2b2620;
-  --muted:#6b635a;
-  --amber:#e9b352;
-  --amber-ink:#a8791c;
-  --line:#e7ddcd;
+  --bg:#fbf4c7;
+  --rose:#e79b93;
+  --rose-bold:#e4726a;
+  --coral:#f0736b;
+  --btn:#f7cbc6;
+  --ink:#6b4f47;
+  --line:#efd9a6;
   --bad:#c0504d;
+  --fdisp:"quiche-display","Fraunces",Georgia,serif;
+  --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:var(--bg);
   color:var(--ink);
-  font-family:'Archivo',system-ui,-apple-system,sans-serif;
+  font-family:var(--fsans);
   min-height:100dvh;
 }
-::selection{background:var(--amber);color:var(--ink)}
+::selection{background:var(--rose-bold);color:var(--bg)}
 
 /* ---------- buttons ---------- */
 .btn{
   appearance:none;
-  background:var(--amber);
-  border:none;
-  color:var(--ink);
-  border-radius:14px;
-  padding:17px 30px;
-  font:700 16px/1 'Archivo',sans-serif;
-  letter-spacing:.02em;
-  cursor:pointer;
-  box-shadow:0 6px 16px rgba(43,38,32,.14);
+  background:var(--btn);border:none;color:var(--rose-bold);
+  border-radius:999px;padding:15px 30px;
+  font-family:var(--fsans);font-weight:700;font-size:17px;line-height:1;
+  cursor:pointer;box-shadow:0 6px 16px rgba(228,114,106,.16);
   transition:box-shadow .15s ease, transform .15s ease, opacity .15s ease;
   touch-action:manipulation;
 }
-.btn:hover{box-shadow:0 10px 22px rgba(43,38,32,.18);transform:translateY(-1px)}
+.btn:hover{box-shadow:0 10px 22px rgba(228,114,106,.26);transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
-.btn:disabled{opacity:.35;box-shadow:none;cursor:not-allowed;transform:none}
-.btn.ghost{
-  background:transparent;
-  border:2px solid var(--line);
-  color:var(--ink);
-  box-shadow:none;
-}
-.btn.ghost:hover{border-color:var(--amber)}
+.btn:disabled{opacity:.4;box-shadow:none;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;border:2px solid var(--line);color:var(--rose-bold);box-shadow:none}
+.btn.ghost:hover{border-color:var(--coral)}
 
 /* ---------- progress ---------- */
-#progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(233,179,82,.22);z-index:50}
-#progressFill{height:100%;width:0%;background:var(--amber);transition:width .35s ease}
+#progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
+#progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
+
+/* ---------- decorative loop framing the active step ---------- */
+#framer{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(780px,94vw);height:min(680px,80vh);
+  z-index:0;pointer-events:none;overflow:visible;
+}
+#framerPath{fill:none;stroke:var(--coral);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+@media (prefers-reduced-motion: reduce){#framerPath{stroke-dashoffset:0 !important}}
 
 /* ---------- steps ---------- */
 .step{display:none}
 .step.on{
+  position:relative;z-index:1;
   display:flex;flex-direction:column;justify-content:center;
-  min-height:100dvh;max-width:680px;margin:0 auto;
+  min-height:100dvh;max-width:640px;margin:0 auto;
   padding:40px 22px calc(40px + env(safe-area-inset-bottom));
   animation:fadeUp .4s ease both;
 }
@@ -76,82 +82,75 @@ body{
 
 /* ---------- intro ---------- */
 .step.intro{align-items:center;text-align:center}
-.introCopy{font:500 18px/1.65 'Archivo';color:var(--muted);max-width:520px;margin:0 0 34px}
+.introCopy{font-weight:600;font-size:19px;line-height:1.6;color:var(--rose);max-width:520px;margin:0 0 34px}
 
 /* ---------- question ---------- */
-.qnum{
-  font:800 13px 'Archivo';letter-spacing:.35em;
-  color:var(--amber-ink);
-}
-.qopt{color:var(--muted);letter-spacing:.2em;margin-left:10px;font:700 11px 'Archivo'}
-.qlabel{font:800 clamp(24px,5.6vw,32px)/1.18 'Archivo';margin:16px 0 8px}
-.qhelp{font:500 15px/1.5 'Archivo';color:var(--muted);margin:0 0 22px}
+.qnum{font-weight:800;font-size:13px;letter-spacing:.3em;color:var(--coral)}
+.qopt{color:var(--rose);letter-spacing:.16em;margin-left:10px;font-weight:700;font-size:11px}
+.qlabel{font-family:var(--fdisp);font-weight:700;font-size:clamp(25px,5.6vw,34px);line-height:1.16;color:var(--rose-bold);margin:14px 0 8px}
+.qhelp{font-weight:500;font-size:15px;line-height:1.5;color:var(--rose);margin:0 0 22px}
 .inp{
-  width:100%;
-  background:#fff;
-  border:2px solid var(--line);
-  border-radius:12px;
-  color:var(--ink);
-  font:500 19px 'Archivo',sans-serif;
-  padding:16px;
-  outline:none;
-  transition:border-color .15s, box-shadow .15s;
+  width:100%;background:#fffdf4;border:2px solid var(--line);border-radius:14px;
+  color:var(--ink);font-family:var(--fsans);font-weight:500;font-size:19px;
+  padding:16px;outline:none;transition:border-color .15s, box-shadow .15s;
 }
-.inp:focus{border-color:var(--amber);box-shadow:0 0 0 4px rgba(233,179,82,.18)}
-.inp::placeholder{color:#b7ab98}
-textarea.inp{resize:vertical;min-height:160px;line-height:1.5}
+.inp:focus{border-color:var(--coral);box-shadow:0 0 0 4px rgba(240,115,107,.16)}
+.inp::placeholder{color:#c7b89a}
+textarea.inp{resize:vertical;min-height:150px;line-height:1.5}
 .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;min-height:20px}
-.err{font:600 14px 'Archivo';color:var(--bad);min-height:18px}
-.cnt{font:700 13px 'Archivo';letter-spacing:.06em;color:var(--muted)}
-.cnt.ok{color:var(--amber-ink)}
+.err{font-weight:600;font-size:14px;color:var(--bad);min-height:18px}
+.cnt{font-weight:700;font-size:13px;letter-spacing:.05em;color:var(--rose)}
+.cnt.ok{color:var(--rose-bold)}
 .nav{display:flex;gap:12px;margin-top:28px;align-items:center}
 .nav .spacer{flex:1}
 
 /* ---------- file zone ---------- */
 .fzone{
-  border:2px dashed var(--line);
-  border-radius:14px;padding:30px 20px;text-align:center;
-  background:#fff;
-  color:var(--muted);cursor:pointer;
-  font:700 15px 'Archivo';letter-spacing:.04em;
+  border:2px dashed var(--line);border-radius:16px;padding:30px 20px;text-align:center;
+  background:#fffdf4;color:var(--rose);cursor:pointer;font-weight:700;font-size:15px;
   transition:border-color .15s;
 }
-.fzone:hover{border-color:var(--amber)}
+.fzone:hover{border-color:var(--coral)}
 .thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.thumb{position:relative;width:86px;height:86px;border-radius:10px;overflow:hidden;border:2px solid var(--line);box-shadow:0 3px 10px rgba(43,38,32,.10)}
+.thumb{position:relative;width:86px;height:86px;border-radius:12px;overflow:hidden;border:2px solid var(--line)}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb button{
-  position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:7px;
-  border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--ink);
-  font:800 13px/1 'Archivo';cursor:pointer;padding:0;
+  position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:8px;
+  border:1px solid var(--line);background:rgba(255,253,244,.94);color:var(--rose-bold);
+  font-weight:800;font-size:13px;line-height:1;cursor:pointer;padding:0;
 }
 
 /* ---------- success ---------- */
-.bigYellow{
-  font:900 clamp(34px,8vw,58px)/1.05 'Archivo';
-  color:var(--ink);
-  text-shadow:.05em .05em 0 var(--amber);
-  margin:0 0 26px;
-}
-.outro{font:500 17px/1.6 'Archivo';color:var(--muted);max-width:480px}
+.bigYellow{font-family:var(--fdisp);font-weight:700;font-size:clamp(36px,8vw,60px);line-height:1.05;color:var(--rose-bold);margin:0 0 26px;text-decoration:underline;text-decoration-thickness:.05em;text-underline-offset:.1em}
+.outro{font-weight:600;font-size:17px;line-height:1.6;color:var(--rose);max-width:480px}
 
 /* ---------- overlay ---------- */
 #busy{
   display:none;position:fixed;inset:0;z-index:100;
-  background:rgba(250,246,239,.92);
+  background:rgba(251,244,199,.92);
   align-items:center;justify-content:center;flex-direction:column;gap:18px;
 }
 #busy.on{display:flex}
-#busyText{font:800 16px 'Archivo';letter-spacing:.3em;color:var(--amber-ink);text-transform:uppercase;animation:blink 1.1s ease-in-out infinite alternate}
+#busyText{font-weight:800;font-size:16px;letter-spacing:.28em;color:var(--rose-bold);text-transform:uppercase;animation:blink 1.1s ease-in-out infinite alternate}
 @keyframes blink{from{opacity:.45}to{opacity:1}}
 .hp{position:absolute;left:-6000px;top:-6000px;height:1px;width:1px;opacity:0}
 </style>
 </head>
 <body>
 <div id="progress"><div id="progressFill"></div></div>
+<svg id="framer" viewBox="0 0 800 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  <path id="framerPath" d="M 402 44
+    C 214 22, 92 96, 96 250
+    C 98 372, 30 456, 128 548
+    C 232 646, 452 664, 596 610
+    C 728 560, 792 430, 742 300
+    C 700 190, 764 120, 628 66
+    C 516 22, 300 38, 250 118
+    C 214 176, 296 214, 430 176"/>
+</svg>
 <input class="hp" id="hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
 <main id="app"></main>
-<div id="busy"><div id="busyText">Transmitting</div></div>
+<div id="busy"><div id="busyText">Sending</div></div>
 
 <script>
 (function(){
@@ -403,9 +402,37 @@ function buildFileZone(q, errEl, section){
 }
 
 function buildSuccess(){
-  var s = el('section','step');
+  var s = el('section','step intro');
   s.appendChild(el('h1','bigYellow','Thank you.'));
   s.appendChild(el('p','outro','If you’re a fit, you’ll hear from us within the next seven days.'));
+
+  var friends = el('p','outro','We’d love it if your friends applied too.');
+  friends.style.marginTop = '30px';
+  s.appendChild(friends);
+
+  var btn = el('button','btn','Share');
+  btn.style.marginTop = '16px';
+  var note = el('div','cnt');
+  note.style.marginTop = '12px';
+  note.style.minHeight = '18px';
+  btn.addEventListener('click', function(){
+    var url = location.origin + '/';
+    var data = {
+      title: 'Reid’s Parties',
+      text: 'Apply to Reid’s Parties — application-based parties for genuinely interesting people in Austin.',
+      url: url
+    };
+    if (navigator.share){
+      navigator.share(data).catch(function(){});
+    } else if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ note.textContent = 'Link copied!'; })
+        .catch(function(){ note.textContent = url; });
+    } else {
+      note.textContent = url;
+    }
+  });
+  s.appendChild(btn);
+  s.appendChild(note);
   return s;
 }
 
@@ -440,10 +467,28 @@ function advance(q, idx, errEl){
   else show(idx + 1);
 }
 
+/* redraw the decorative loop each time a new step appears */
+var framerPath = document.getElementById('framerPath');
+var framerLen = framerPath ? framerPath.getTotalLength() : 0;
+var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (framerPath && !reduceMotion){
+  framerPath.style.strokeDasharray = framerLen;
+  framerPath.style.strokeDashoffset = framerLen;
+}
+function drawFramer(){
+  if (!framerPath || reduceMotion) return;
+  framerPath.style.transition = 'none';
+  framerPath.style.strokeDashoffset = framerLen;
+  void framerPath.getBoundingClientRect();
+  framerPath.style.transition = 'stroke-dashoffset 1.15s ease';
+  framerPath.style.strokeDashoffset = 0;
+}
+
 function show(i){
   step = Math.max(0, Math.min(TOTAL + 1, i));
   sections.forEach(function(s, j){ s.classList.toggle('on', j === step); });
   fill.style.width = Math.round(100 * step / (TOTAL + 1)) + '%';
+  drawFramer();
   var s = sections[step];
   if (s && s._q){
     refreshState(s._q, s);

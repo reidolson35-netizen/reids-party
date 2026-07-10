@@ -6,6 +6,7 @@
  *    private Drive folder, appends a row to a private Google Sheet, emails you.
  *  - GET ?action=list&token=…: returns every application as JSON (admin page).
  *  - POST {action:'setStatus', token, n, status}: updates a row's status.
+ *  - POST {action:'delete', token, n}: permanently deletes a row.
  *
  * Scopes are deliberately minimal (see appsscript.json): spreadsheets,
  * drive.file (only files this script creates), send-mail, user email.
@@ -103,6 +104,7 @@ function doPost(e){
   try{
     var p = JSON.parse(e.postData.contents);
     if (p.action === 'setStatus') return setStatus_(p);
+    if (p.action === 'delete') return deleteApp_(p);
     return submit_(p);
   } catch(err){
     return json_({ok:false, error:'bad request: ' + err});
@@ -202,4 +204,23 @@ function setStatus_(p){
     }
   }
   return json_({ok:false, error:'applicant not found'});
+}
+
+function deleteApp_(p){
+  if (p.token !== TOKEN) return json_({ok:false, error:'bad token'});
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try{
+    var sh = getSpreadsheet_().getSheets()[0];
+    var last = sh.getLastRow();
+    for (var r = 2; r <= last; r++){
+      if (String(sh.getRange(r, 1).getValue()) === String(p.n)){
+        sh.deleteRow(r);
+        return json_({ok:true});
+      }
+    }
+    return json_({ok:false, error:'applicant not found'});
+  } finally {
+    lock.releaseLock();
+  }
 }

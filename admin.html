@@ -88,6 +88,13 @@ select.status{
 select.status.ACCEPTED{border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 12px rgba(233,179,82,.35)}
 select.status.WAITLIST{border-color:var(--blue);color:var(--blue)}
 select.status.REJECTED{border-color:rgba(233,140,140,.6);color:var(--bad)}
+.del{
+  appearance:none;background:transparent;border:2px solid rgba(233,140,140,.45);color:var(--bad);
+  border-radius:10px;padding:9px 12px;font:italic 800 12px/1 'Archivo';letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer;transition:.15s;
+}
+.del:hover{border-color:var(--bad);box-shadow:0 0 12px rgba(233,140,140,.35)}
+.del:disabled{opacity:.4;cursor:not-allowed}
 .contact{display:flex;gap:8px 16px;flex-wrap:wrap;margin:12px 0 4px}
 .contact a{color:var(--blue);font:italic 700 14px 'Archivo';text-decoration:none;border-bottom:1px solid rgba(111,154,216,.35);word-break:break-all}
 .contact a:hover{color:var(--yellow);border-color:var(--yellow-dim)}
@@ -272,6 +279,7 @@ function render(){
         '<select class="status ' + esc(st) + '">' +
           STATUSES.map(function(s){ return '<option value="' + s + '"' + (s===st?' selected':'') + '>' + s + '</option>'; }).join('') +
         '</select>' +
+        '<button class="del" type="button">Delete</button>' +
       '</div>' +
       '<div class="contact">' +
         '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' +
@@ -305,6 +313,25 @@ function render(){
           r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
           $('msg').textContent = 'Network error — status not saved.';
         });
+    });
+
+    var del = card.querySelector('button.del');
+    del.addEventListener('click', function(){
+      if (!window.confirm('Delete application № ' + pad(r.n||0) + ' — ' + (r.name||'') + '?\nThis permanently removes the row and cannot be undone.')) return;
+      del.disabled = true;
+      $('msg').textContent = '';
+      fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'delete', token: token, n: r.n})})
+        .then(function(x){ return x.json(); })
+        .then(function(res){
+          if (res.ok){
+            rows = rows.filter(function(x){ return x.n !== r.n; });
+            render();
+          } else {
+            del.disabled = false;
+            $('msg').textContent = 'Delete failed: ' + (res.error||'unknown');
+          }
+        })
+        .catch(function(){ del.disabled = false; $('msg').textContent = 'Network error — not deleted.'; });
     });
     c.appendChild(card);
   });

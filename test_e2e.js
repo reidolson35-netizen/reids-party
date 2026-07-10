@@ -177,6 +177,10 @@ async function activeStep() {
   await waitFor(`(function(){var s=document.querySelectorAll('.step');return s[s.length-1].classList.contains('on');})()`, 15000, 'success screen');
   const thanks = await eval_(`(document.querySelector('.step.on .bigYellow')||{}).textContent || ''`);
   check('success screen shows thank-you', /thank you/i.test(thanks), JSON.stringify(thanks));
+  const friends = await eval_(`/friends applied too/i.test(document.querySelector('.step.on').textContent)`);
+  check('success screen invites friends', friends === true);
+  const hasShare = await eval_(`!!Array.from(document.querySelectorAll('.step.on .btn')).find(function(b){return /share/i.test(b.textContent);})`);
+  check('success screen has Share button', hasShare === true);
   await shot('/tmp/rp_success.png');
 
   // -- verify through the API ----------------------------------------------------
@@ -188,6 +192,12 @@ async function activeStep() {
       row.email === 'jeri@test.com' && row.images.length === 0 &&
       row.want === 'Real friends, and maybe a partner.',
       JSON.stringify({ name: row.name, age: row.age, want: row.want }));
+
+    // delete path — remove the row we just made and confirm it's gone
+    const del = await (await fetch(EXEC, {method:'POST', body: JSON.stringify({action:'delete', token: TOKEN, n: row.n})})).json();
+    check('delete removes the application', del.ok === true, JSON.stringify(del));
+    const after = await (await fetch(EXEC + '?action=list&token=' + encodeURIComponent(TOKEN))).json();
+    check('deleted row no longer listed', !(after.rows||[]).some(function(x){ return x.n === row.n; }));
   }
 
   const fails = results.filter(r => !r.ok).length;
