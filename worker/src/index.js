@@ -20,8 +20,11 @@
 var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
 var REQUIRED = ['email', 'name', 'socials', 'age', 'why', 'working', 'contrarian', 'want', 'phone'];
 var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-var SUB_PER_IP_HOUR = 5;
-var SUB_GLOBAL_DAY = 300;
+/* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
+   cap counts only ACCEPTED submissions; raw attempts get a loose flood guard. */
+var SUB_OK_PER_IP_HOUR = 20;
+var ATTEMPTS_PER_IP_HOUR = 120;
+var SUB_GLOBAL_DAY = 2000;
 var BADTOKEN_PER_IP_HOUR = 30;
 
 var CORS = {
@@ -94,6 +97,16 @@ async function submit(env, ctx, p, rawBody, ip) {
   var why = String(a.why).trim();
   if (why.length < 10 || why.length > 140) return json({ ok: false, error: '"Why" must be 10–140 characters.' });
 
+  /* validation passed — only now does it count against the real caps */
+  var okCount = await bump(env, 'sub:' + ip, 3600);
+  if (okCount > SUB_OK_PER_IP_HOUR) {
+    return json({ ok: false, error: 'Too many applications from your network — try again in an hour.' });
+  }
+  var global = await bump(env, 'sub:GLOBAL', 86400);
+  if (global > SUB_GLOBAL_DAY) {
+    return json({ ok: false, error: 'We’re getting a lot of applications right now — please try again tomorrow.' });
+  }
+
   /* store optional images (unguessable keys); a bad image never sinks the application */
   var imgRefs = [];
   var imgs = Array.isArray(p.images) ? p.images.slice(0, 5) : [];
@@ -141,6 +154,16 @@ async function submit(env, ctx, p, rawBody, ip) {
 
 export default {
   async fetch(request, env, ctx) {
+    try {
+      return await handle(request, env, ctx);
+    } catch (e) {
+      /* never leak an HTML 1101 page — the frontend expects JSON */
+      return json({ ok: false, error: 'server error' }, 500);
+    }
+  }
+};
+
+async function handle(request, env, ctx) {
     var url = new URL(request.url);
     var ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
     var origin = url.origin;
@@ -185,13 +208,17 @@ export default {
 
       if (p.action === 'setStatus') {
         if (STATUSES.indexOf(p.status) < 0) return json({ ok: false, error: 'bad status' });
-        var u = await env.DB.prepare('UPDATE applications SET status=? WHERE n=?').bind(p.status, p.n).run();
+        var sn = parseInt(p.n, 10);
+        if (!sn) return json({ ok: false, error: 'applicant not found' });
+        var u = await env.DB.prepare('UPDATE applications SET status=? WHERE n=?').bind(p.status, sn).run();
         return u.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
       }
 
       if (p.action === 'delete') {
-        await env.DB.prepare('DELETE FROM images WHERE n=?').bind(p.n).run();
-        var d = await env.DB.prepare('DELETE FROM applications WHERE n=?').bind(p.n).run();
+        var dn = parseInt(p.n, 10);
+        if (!dn) return json({ ok: false, error: 'applicant not found' });
+        await env.DB.prepare('DELETE FROM images WHERE n=?').bind(dn).run();
+        var d = await env.DB.prepare('DELETE FROM applications WHERE n=?').bind(dn).run();
         return d.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
       }
 
@@ -216,15 +243,10 @@ export default {
       return json({ ok: false, error: 'bad request' });
     }
 
-    /* ---- public submission (rate-limited before anything else) ---- */
-    var perIp = await bump(env, 'sub:' + ip, 3600);
-    if (perIp > SUB_PER_IP_HOUR) {
+    /* ---- public submission ---- */
+    var attempts = await bump(env, 'try:' + ip, 3600);
+    if (attempts > ATTEMPTS_PER_IP_HOUR) {
       return json({ ok: false, error: 'Too many attempts from your network — try again in an hour.' });
     }
-    var global = await bump(env, 'sub:GLOBAL', 86400);
-    if (global > SUB_GLOBAL_DAY) {
-      return json({ ok: false, error: 'We’re getting a lot of applications right now — please try again tomorrow.' });
-    }
     return submit(env, ctx, p, raw, ip);
-  }
-};
+}

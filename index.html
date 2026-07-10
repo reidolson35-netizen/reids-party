@@ -255,7 +255,11 @@ function buildTrail(){
       pts.push({x: x0 + (x1 - x0) * (1 - Math.cos(Math.PI * t)) / 2, y: y0 + (y1 - y0) * t});
     }
   }
-  pts.push({x: ex, y: ey});
+  /* finish with interpolated (near-collinear) points — one long hop after the
+     dense wave samples makes the spline overshoot into a visible blip */
+  [0.35, 0.7, 1].forEach(function(t){
+    pts.push({x: W * 0.5 + (ex - W * 0.5) * t, y: yBot + (ey - yBot) * t});
+  });
   path.setAttribute('d', smoothPath(pts));
 
   /* highlighted words the line happens to cross glow as the tip passes */
