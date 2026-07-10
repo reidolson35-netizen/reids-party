@@ -250,7 +250,21 @@ function buildTrail(){
   var pts = [
     {x: W * 0.5, y: sy0},
     {x: W * 0.5, y: sy0 + 74},
-    {x: W * 0.5, y: sy0 + 150},
+    {x: W * 0.5, y: sy0 + 150}
+  ];
+
+  if (narrow){
+    /* phones: a calm, mostly straight-down line with a gentle wave */
+    var ampl = W * 0.13;
+    var yTop = sy0 + 150, yBot = ey - 150;
+    for (var wv = 1; wv <= 5; wv++){
+      pts.push({x: W * 0.5 + (wv % 2 ? ampl : -ampl), y: yTop + (yBot - yTop) * wv / 6});
+    }
+    pts.push({x: W * 0.5, y: ey - 60});
+    pts.push({x: ex, y: ey});
+    path.setAttribute('d', smoothPath(pts));
+  } else {
+  pts = pts.concat([
     /* soft smile under "What is this?" */
     {x: r[0].h.x + r[0].h.w * 0.6, y: r[0].h.y + r[0].h.h + 34},
     /* glide right under the first answer */
@@ -274,8 +288,9 @@ function buildTrail(){
     /* hook into the button from the right */
     {x: Math.min(W - 24, eb.x + eb.w + 60), y: (r[2].a.y + r[2].a.h + ey) / 2 + 50},
     {x: eb.x + eb.w * 0.78, y: ey}
-  ];
+  ]);
   path.setAttribute('d', smoothPath(pts));
+  }
 
   /* highlighted words the line happens to cross glow as the tip passes */
   var rects = [];
