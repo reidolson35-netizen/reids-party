@@ -454,19 +454,22 @@ function advance(q, idx, errEl){
   else show(idx + 1);
 }
 
-/* 8-point flower: 16 separate petal strokes (two rotated layers of 8) appear
-   a few per step; on the thank-you screen a ring joins the petal tips —
-   that's when everything connects. */
+/* 8-point flower, one outer layer. Each petal is split into little sub-arcs
+   revealed round-robin across the petals — scattered disconnected segments
+   fill in more and more each step, becoming whole petals by the end; a ring
+   joins the petal tips on the thank-you screen. */
 var spiroSvg = document.getElementById('spiro');
 /* runs everywhere — Reduce Motion phones were getting a static page */
 var reduceMotion = false;
 var petals = [];
-var SP_TOTAL = 16;
+var PETALS = 8, SEGS = 6;
+var SP_TOTAL = PETALS * SEGS;
 
-function petalD(cx, cy, rIn, rOut, rot){
+function petalSegD(cx, cy, rIn, rOut, rot, f0, f1){
   var d = '';
-  for (var i = 0; i <= 36; i++){
-    var phi = -Math.PI / 8 + (Math.PI / 4) * i / 36;
+  for (var i = 0; i <= 8; i++){
+    var t = f0 + (f1 - f0) * i / 8;
+    var phi = -Math.PI / 8 + (Math.PI / 4) * t;
     var rr = rIn + (rOut - rIn) * Math.cos(4 * phi);
     var a = rot + phi;
     d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1);
@@ -497,9 +500,12 @@ function buildSpiro(){
     });
   }
 
-  var k;
-  for (k = 0; k < 8; k++) addStroke(petalD(cx, cy, R * 0.55, R, k * Math.PI / 4), k, false);
-  for (k = 0; k < 8; k++) addStroke(petalD(cx, cy, R * 0.34, R * 0.62, k * Math.PI / 4 + Math.PI / 8), 8 + k, false);
+  /* reveal order s*PETALS+p: each new batch lands on a different petal */
+  for (var p = 0; p < PETALS; p++){
+    for (var s = 0; s < SEGS; s++){
+      addStroke(petalSegD(cx, cy, R * 0.55, R, p * Math.PI / 4, s / SEGS, (s + 1) / SEGS), s * PETALS + p, false);
+    }
+  }
   /* the ring that connects the petal tips — final step only */
   addStroke('M ' + (cx + R) + ',' + cy +
     ' A ' + R + ' ' + R + ' 0 1 1 ' + (cx - R) + ' ' + cy +
