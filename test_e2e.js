@@ -6,7 +6,7 @@
  *   --remote-debugging-port=9222
  * Run: node test_e2e.js
  *
- * What it does: walks the real form in a real browser — intro → 10 questions
+ * What it does: walks the real form in a real browser - intro → 10 questions
  * (skips the optional image step, checks the under-20 gate) → submit →
  * success screen → verifies the row via the API.
  * Also reports per-step horizontal overflow (layout regression guard).
@@ -60,7 +60,7 @@ async function shot(path) {
 const results = [];
 function check(name, ok, extra = '') {
   results.push({ name, ok });
-  console.log((ok ? 'PASS' : 'FAIL') + '  ' + name + (extra ? '  — ' + extra : ''));
+  console.log((ok ? 'PASS' : 'FAIL') + '  ' + name + (extra ? '  - ' + extra : ''));
 }
 
 async function typeIntoActive(value) {
@@ -138,7 +138,7 @@ async function activeStep() {
   await typeIntoActive('Jeri Athan');      await clickNext();           // 2 name
   await typeIntoActive('instagram.com/_reidolson'); await clickNext();  // 3 socials
 
-  // 4 age — under-20 gate first
+  // 4 age - under-20 gate first
   await typeIntoActive('19');
   await sleep(100);
   const gateErr = await eval_(`document.querySelector('.step.on .err').textContent`);
@@ -146,7 +146,7 @@ async function activeStep() {
   check('under-20 blocks NEXT with message', gateDisabled && /20/.test(gateErr), JSON.stringify(gateErr));
   await typeIntoActive('27'); await clickNext();
 
-  // 5 why — char-count gate
+  // 5 why - char-count gate
   await typeIntoActive('short');
   const whyDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
   check('why <10 chars keeps NEXT disabled', whyDisabled === true);
@@ -156,7 +156,7 @@ async function activeStep() {
   await typeIntoActive('An automated video editing brain called Jeriathan.\nIt cuts dialogue like Reid does.');
   await clickNext();                                                    // 6 working
 
-  // 7 images — optional, test SKIP path
+  // 7 images - optional, test SKIP path
   const skipLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
   check('optional empty step shows SKIP', /skip/i.test(skipLabel), skipLabel);
   await clickNext();
@@ -165,7 +165,7 @@ async function activeStep() {
   await clickNext();                                                    // 8 contrarian
   await typeIntoActive('Real friends, and maybe a partner.');
   await clickNext();                                                    // 9 want
-  await typeIntoActive('(555) 867-5309');                               // 10 phone — last question
+  await typeIntoActive('(555) 867-5309');                               // 10 phone - last question
   const lastStep = await activeStep();
   check('arrived at last step (10, phone)', lastStep === 10, 'step=' + lastStep);
 
@@ -193,7 +193,7 @@ async function activeStep() {
       row.want === 'Real friends, and maybe a partner.',
       JSON.stringify({ name: row.name, age: row.age, want: row.want }));
 
-    // delete path — remove the row we just made and confirm it's gone
+    // delete path - remove the row we just made and confirm it's gone
     const del = await (await fetch(EXEC, {method:'POST', body: JSON.stringify({action:'delete', token: TOKEN, n: row.n})})).json();
     check('delete removes the application', del.ok === true, JSON.stringify(del));
     const after = await (await fetch(EXEC + '?action=list&token=' + encodeURIComponent(TOKEN))).json();

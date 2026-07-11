@@ -1,4 +1,4 @@
-# REID'S PARTY — setup & operations
+# REID'S PARTY - setup & operations
 
 The site is static (GitHub Pages). The "database" is a private Google Sheet in
 your Drive, fed by a tiny Google Apps Script web app. Total cost: $0
@@ -28,7 +28,7 @@ The web app is live and wired into `config.js`. Moving parts:
 - **Script**: "Untitled project", scriptId `1SL4lN3ZyemQZzGNQQ1949ESurWiL2bvdugDWxXvfVkrK8qg5YqoeSjks`
   (deployed via `clasp` from `gas/`, deployment
   `AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ`)
-- **GCP project**: `sunny-dialect-499212-k4` ("My Project 88054") — owns the
+- **GCP project**: `sunny-dialect-499212-k4` ("My Project 88054") - owns the
   OAuth consent screen (External / Testing, reidolson35@gmail.com is a test
   user) and has the Drive API enabled. Required because this Google account
   hard-blocks unverified-app consent; test users are exempt.
@@ -45,7 +45,7 @@ PATH="$HOME/.npm-global/bin:$PATH" clasp redeploy \
   AKfycbxMUOmPdK9_pOShAiBm-BmLTY6N7PioBY9VjabLo_coVVX6xvK3CkK47v7VurbhC7tLmQ
 ```
 
-Same `/exec` URL survives redeploys — no config.js change needed.
+Same `/exec` URL survives redeploys - no config.js change needed.
 `apps-script/Code.gs` is the public placeholder copy; `gas/Code.js` +
 `apps-script/Code.local.gs` are the real ones (gitignored).
 
@@ -98,7 +98,7 @@ Same API as the real backend; submissions land in `responses.json` + `uploads/`
 ## 6. Privacy notes
 
 - Responses, ID photos, and images live only in your Google account.
-- The public repo contains code only — no passcode, no data (`.gitignore`
+- The public repo contains code only - no passcode, no data (`.gitignore`
   covers `token.txt`, `Code.local.gs`, `responses.json`, `uploads/`).
 - IDs are sensitive: when the party's done, consider deleting the
   "Reid's Party Uploads" folder.

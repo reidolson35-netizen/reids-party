@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Reid's Parties — Admin</title>
+<title>Reid's Parties - Admin</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#fbf4c7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
@@ -128,7 +128,7 @@ select.status.REJECTED{border-color:var(--bad);color:var(--bad)}
 
   <section id="lock" class="panel">
     <div class="logo">Admin</div>
-    <div class="sub">Reid&rsquo;s Parties — Applications</div>
+    <div class="sub">Reid&rsquo;s Parties - Applications</div>
     <input class="inp" id="pass" type="password" placeholder="Passcode" autocomplete="current-password">
     <div class="err" id="lockErr"></div>
     <button class="btn" id="unlock">Unlock</button>
@@ -188,7 +188,7 @@ function setView(unlocked){
 /* ---------- data ---------- */
 function load(){
   if (!ENDPOINT){
-    $('msg').textContent = 'ENDPOINT not set in config.js — see SETUP.md.';
+    $('msg').textContent = 'ENDPOINT not set in config.js - see SETUP.md.';
     return;
   }
   $('msg').textContent = 'Loading…';
@@ -206,7 +206,7 @@ function load(){
       $('msg').textContent = '';
       render();
     })
-    .catch(function(){ $('msg').textContent = 'Network error — pull to refresh / tap REFRESH.'; });
+    .catch(function(){ $('msg').textContent = 'Network error - pull to refresh / tap REFRESH.'; });
 }
 
 /* ---------- render ---------- */
@@ -269,7 +269,7 @@ function matches(r){
 }
 
 function qa(label, val, dim){
-  return '<div class="qa"><div class="l">' + label + '</div><div class="v' + (dim?' dim':'') + '">' + (val || '<span class="dim" style="color:var(--rose)">—</span>') + '</div></div>';
+  return '<div class="qa"><div class="l">' + label + '</div><div class="v' + (dim?' dim':'') + '">' + (val || '<span class="dim" style="color:var(--rose)">-</span>') + '</div></div>';
 }
 
 function render(){
@@ -325,13 +325,13 @@ function render(){
         })
         .catch(function(){
           r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
-          $('msg').textContent = 'Network error — status not saved.';
+          $('msg').textContent = 'Network error - status not saved.';
         });
     });
 
     var del = card.querySelector('button.del');
     del.addEventListener('click', function(){
-      if (!window.confirm('Delete application № ' + pad(r.n||0) + ' — ' + (r.name||'') + '?\nThis permanently removes the row and cannot be undone.')) return;
+      if (!window.confirm('Delete application № ' + pad(r.n||0) + ' - ' + (r.name||'') + '?\nThis permanently removes the row and cannot be undone.')) return;
       del.disabled = true;
       $('msg').textContent = '';
       fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'delete', token: token, n: r.n})})
@@ -345,7 +345,7 @@ function render(){
             $('msg').textContent = 'Delete failed: ' + (res.error||'unknown');
           }
         })
-        .catch(function(){ del.disabled = false; $('msg').textContent = 'Network error — not deleted.'; });
+        .catch(function(){ del.disabled = false; $('msg').textContent = 'Network error - not deleted.'; });
     });
     c.appendChild(card);
   });

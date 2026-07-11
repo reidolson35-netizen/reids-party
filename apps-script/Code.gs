@@ -1,5 +1,5 @@
 /**
- * REID'S PARTY — backend (Google Apps Script Web App)
+ * REID'S PARTY - backend (Google Apps Script Web App)
  *
  * Endpoints:
  *  - POST (no token): accepts an application, saves optional images to a
@@ -11,7 +11,7 @@
  * Scopes are deliberately minimal (see appsscript.json): spreadsheets,
  * drive.file (only files this script creates), send-mail, user email.
  * Drive access goes through the Drive v3 advanced service so the broad
- * DriveApp scope is never requested — that scope is "restricted" and made
+ * DriveApp scope is never requested - that scope is "restricted" and made
  * Google hard-block the consent screen.
  */
 
@@ -114,7 +114,7 @@ function doPost(e){
 /* ---------------- handlers ---------------- */
 
 function submit_(p){
-  if (p.hp) return json_({ok:true, n:0});   // honeypot — silently swallow bots
+  if (p.hp) return json_({ok:true, n:0});   // honeypot - silently swallow bots
 
   var a = p.answers || {};
   var required = ['email','name','socials','age','why','working','contrarian','want','phone'];
@@ -149,7 +149,7 @@ function submit_(p){
       try{
         MailApp.sendEmail(
           Session.getEffectiveUser().getEmail(),
-          'Party application №' + pad_(n) + ' — ' + a.name + ', ' + age,
+          'Party application №' + pad_(n) + ' - ' + a.name + ', ' + age,
           'WHY:\n' + a.why + '\n\n' +
           'WANT:\n' + a.want + '\n\n' +
           'WORKING ON:\n' + a.working + '\n\n' +

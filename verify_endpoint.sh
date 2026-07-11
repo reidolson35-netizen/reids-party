@@ -4,7 +4,7 @@
 #
 # Sends: health check, one TEST application (with a tiny ID image), then
 # reads it back via the admin list API. The test row lands in the real
-# Sheet as "TEST - DELETE ME" (and triggers the notify email) — delete the
+# Sheet as "TEST - DELETE ME" (and triggers the notify email) - delete the
 # row + the test files in "Reid's Party Uploads" afterwards, or just leave
 # it REJECTED.
 set -euo pipefail
@@ -12,7 +12,7 @@ URL="${1:?usage: $0 <apps-script-/exec-url>}"
 TOKEN="$(cat "$(dirname "$0")/token.txt")"
 PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
-# Apps Script web apps answer through a 302 to googleusercontent — always -L.
+# Apps Script web apps answer through a 302 to googleusercontent - always -L.
 echo "== 1/3 health check =="
 curl -sL "$URL"; echo
 

@@ -7,7 +7,7 @@
 <meta name="description" content="A better way to meet people in Austin than the dating apps: application-based, mostly-singles parties for genuinely interesting people. No fees. 20+.">
 <link rel="canonical" href="https://reidsparty.com/">
 <meta property="og:title" content="Reid's Parties">
-<meta property="og:description" content="Dating apps suck almost as much as the Austin dating scene — so we throw application-based, mostly-singles parties for genuinely interesting people. No fees.">
+<meta property="og:description" content="Dating apps suck almost as much as the Austin dating scene, so we throw application-based, mostly-singles parties for genuinely interesting people. No fees.">
 <meta name="theme-color" content="#fbf4c7">
 <script>
 /* first-touch source: remember how they originally found us (src= tag or external referrer) */
@@ -42,7 +42,7 @@ try{
     {
       "@type": "Question",
       "name": "Who's going?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Every application is read to make sure all attendees are genuinely unique people — people with big goals and a willingness to be different." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Every application is read to make sure all attendees are genuinely unique people: people with big goals and a willingness to be different." }
     },
     {
       "@type": "Question",
@@ -56,11 +56,11 @@ try{
 {
   "@context": "https://schema.org",
   "@type": "SocialEvent",
-  "name": "Reid's Parties — application-based singles party in Austin",
+  "name": "Reid's Parties - application-based singles party in Austin",
   "startDate": "2026-09-05",
   "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
   "eventStatus": "https://schema.org/EventScheduled",
-  "location": { "@type": "Place", "name": "Austin, TX — address shared with accepted applicants", "address": { "@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX", "addressCountry": "US" } },
+  "location": { "@type": "Place", "name": "Austin, TX - address shared with accepted applicants", "address": { "@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX", "addressCountry": "US" } },
   "isAccessibleForFree": true,
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "url": "https://reidsparty.com/apply.html", "availability": "https://schema.org/InStock" },
   "organizer": { "@type": "Organization", "name": "Reid's Parties", "url": "https://reidsparty.com/" },
@@ -79,7 +79,7 @@ try{
   --rose:#e79b93;
   --rose-head:#efa79f;
   --rose-bold:#e4726a;
-  --coral:#e35348; /* trail line only — deepened so the stroke reads solid on the butter bg */
+  --coral:#e35348; /* trail line only - deepened so the stroke reads solid on the butter bg */
   --btn:#f7cbc6;
   --fdisp:"quiche-display","Fraunces",Georgia,serif;
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
@@ -259,11 +259,11 @@ var svg = document.getElementById('trail');
 var path = document.getElementById('trailPath');
 var tip = document.getElementById('tipArrow');
 var endBtn = document.getElementById('finalApply');
-/* the trail IS the page — it runs everywhere, including reduce-motion devices
+/* the trail IS the page - it runs everywhere, including reduce-motion devices
    (an iPhone with Reduce Motion on was getting a fully static page) */
 var reduce = false;
 var len = 0, wordHits = [], built = false;
-var STUB = 64;   /* resting drawn length — the scroll cue */
+var STUB = 64;   /* resting drawn length - the scroll cue */
 
 function pageBox(el){
   var x = 0, y = 0, n = el;
@@ -294,7 +294,7 @@ function buildTrail(){
   var ex = eb.x + eb.w / 2, ey = eb.y - 4;
 
   /* resting stub sits at the bottom of the first screen and points STRAIGHT
-     down — three collinear points keep the spline vertical through it */
+     down - three collinear points keep the spline vertical through it */
   var sy0 = hero.y + hero.h - 96;
   var pts = [
     {x: W * 0.5, y: sy0},
@@ -304,7 +304,7 @@ function buildTrail(){
 
   /* one mostly-straight line down the middle with three IDENTICAL gentle
      bends. The wave is cosine-eased between quarter points, so the slope is
-     perfectly vertical at every junction — the straight stub melts into the
+     perfectly vertical at every junction - the straight stub melts into the
      first bend (and the wave into the button run) with no visible seam. */
   var amp = narrow ? W * 0.13 : Math.min(W * 0.11, 130);
   var yTop = sy0 + 150, yBot = ey - 150;
@@ -317,7 +317,7 @@ function buildTrail(){
       pts.push({x: x0 + (x1 - x0) * (1 - Math.cos(Math.PI * t)) / 2, y: y0 + (y1 - y0) * t});
     }
   }
-  /* finish with interpolated (near-collinear) points — one long hop after the
+  /* finish with interpolated (near-collinear) points - one long hop after the
      dense wave samples makes the spline overshoot into a visible blip */
   [0.35, 0.7, 1].forEach(function(t){
     pts.push({x: W * 0.5 + (ex - W * 0.5) * t, y: yBot + (ey - yBot) * t});

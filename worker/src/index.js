@@ -1,20 +1,20 @@
 /**
- * REID'S PARTIES — backend (Cloudflare Worker + D1)
+ * REID'S PARTIES - backend (Cloudflare Worker + D1)
  *
  * Replaces the Google Apps Script backend as the system of record:
  *  - POST (no token): accepts an application → D1. Never depends on Google,
  *    so nothing expires. Also best-effort forwards to the legacy Apps Script
  *    (keeps the Google Sheet mirror + notify email working while its grant
- *    is alive) — a forward failure never affects the applicant.
+ *    is alive) - a forward failure never affects the applicant.
  *  - POST {action:'list'|'setStatus'|'delete'|'import', token, ...}: admin.
  *    (GET ?action=list&token=… kept for the verify script.)
  *  - GET /img/<key>: applicant-uploaded images (unguessable random keys).
  *
- * Abuse protection (the reason this Worker exists — Apps Script can't see
+ * Abuse protection (the reason this Worker exists - Apps Script can't see
  * IPs): per-IP submission limit, small global daily cap, and a per-IP
  * bad-token lockout. Counters live in D1 (fixed one-hour / one-day windows).
  *
- * Secrets: ADMIN_TOKEN (wrangler secret) — same passcode admin.html uses.
+ * Secrets: ADMIN_TOKEN (wrangler secret) - same passcode admin.html uses.
  */
 
 var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
@@ -83,7 +83,7 @@ async function requireToken(env, ip, token) {
 }
 
 async function submit(env, ctx, p, rawBody, ip) {
-  /* honeypot — silently swallow bots (still costs them rate budget) */
+  /* honeypot - silently swallow bots (still costs them rate budget) */
   if (p.hp) return json({ ok: true, n: 0 });
 
   var a = p.answers || {};
@@ -98,14 +98,14 @@ async function submit(env, ctx, p, rawBody, ip) {
   var why = String(a.why).trim();
   if (why.length < 10 || why.length > 140) return json({ ok: false, error: '"Why" must be 10–140 characters.' });
 
-  /* validation passed — only now does it count against the real caps */
+  /* validation passed - only now does it count against the real caps */
   var okCount = await bump(env, 'sub:' + ip, 3600);
   if (okCount > SUB_OK_PER_IP_HOUR) {
-    return json({ ok: false, error: 'Too many applications from your network — try again in an hour.' });
+    return json({ ok: false, error: 'Too many applications from your network. Try again in an hour.' });
   }
   var global = await bump(env, 'sub:GLOBAL', 86400);
   if (global > SUB_GLOBAL_DAY) {
-    return json({ ok: false, error: 'We’re getting a lot of applications right now — please try again tomorrow.' });
+    return json({ ok: false, error: 'We’re getting a lot of applications right now. Please try again tomorrow.' });
   }
 
   /* store optional images (unguessable keys); a bad image never sinks the application */
@@ -158,7 +158,7 @@ export default {
     try {
       return await handle(request, env, ctx);
     } catch (e) {
-      /* never leak an HTML 1101 page — the frontend expects JSON */
+      /* never leak an HTML 1101 page - the frontend expects JSON */
       return json({ ok: false, error: 'server error' }, 500);
     }
   }
@@ -247,7 +247,7 @@ async function handle(request, env, ctx) {
     /* ---- public submission ---- */
     var attempts = await bump(env, 'try:' + ip, 3600);
     if (attempts > ATTEMPTS_PER_IP_HOUR) {
-      return json({ ok: false, error: 'Too many attempts from your network — try again in an hour.' });
+      return json({ ok: false, error: 'Too many attempts from your network. Try again in an hour.' });
     }
     return submit(env, ctx, p, raw, ip);
 }

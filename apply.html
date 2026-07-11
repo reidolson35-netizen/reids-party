@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Apply — Reid's Parties, Austin, TX</title>
-<meta name="description" content="Apply to Reid's Parties — application-based singles parties in Austin, Texas. No fees. 20+.">
+<title>Apply - Reid's Parties, Austin, TX</title>
+<meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. 20+.">
 <link rel="canonical" href="https://reidsparty.com/apply.html">
 <meta property="og:title" content="Reid's Parties">
 <meta property="og:description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
@@ -69,7 +69,7 @@ body{
 #progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
 
 /* ---------- 8-point flower: separate petal strokes appear step by step; a
-   ring joins the petal tips on the final screen. No CSS filters — the glow is
+   ring joins the petal tips on the final screen. No CSS filters - the glow is
    a soft under-stroke per petal, which keeps phones smooth. ---------- */
 #spiro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:0;pointer-events:none;overflow:visible}
 #spiro path{fill:none;stroke:var(--coral);stroke-linecap:round;stroke-linejoin:round;transition:stroke-dashoffset .6s ease}
@@ -190,7 +190,7 @@ var QUESTIONS = [
   {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only.', req:true, ph:'20+'},
   {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters.', req:true, min:10, max:140},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
-  {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional — up to 5 images.', req:false, max:5},
+  {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional, up to 5 images.', req:false, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
   {id:'want',      type:'textarea', label:'What do you want?', helper:'Answer this however you’d like.', req:true},
   {id:'phone',     type:'tel',      label:'Phone number', helper:'If you’re fit, this is how we’ll contact you.', req:true, ph:'(555) 555-5555'}
@@ -495,7 +495,7 @@ function buildSuccess(){
     var url = location.origin + '/';
     var data = {
       title: 'Reid’s Parties',
-      text: 'Apply to Reid’s Parties — application-based parties for genuinely interesting people in Austin.',
+      text: 'Apply to Reid’s Parties, application-based parties for genuinely interesting people in Austin.',
       url: url
     };
     if (navigator.share){
@@ -544,11 +544,11 @@ function advance(q, idx, errEl){
 }
 
 /* 8-point flower, one outer layer. Each petal is split into little sub-arcs
-   revealed round-robin across the petals — scattered disconnected segments
+   revealed round-robin across the petals - scattered disconnected segments
    fill in more and more each step, becoming whole petals by the end; a ring
    joins the petal tips on the thank-you screen. */
 var spiroSvg = document.getElementById('spiro');
-/* runs everywhere — Reduce Motion phones were getting a static page */
+/* runs everywhere - Reduce Motion phones were getting a static page */
 var reduceMotion = false;
 var petals = [];
 var PETALS = 8, SEGS = 6;
@@ -595,7 +595,7 @@ function buildSpiro(){
       addStroke(petalSegD(cx, cy, R * 0.55, R, p * Math.PI / 4, s / SEGS, (s + 1) / SEGS), s * PETALS + p, false);
     }
   }
-  /* the ring that connects the petal tips — final step only */
+  /* the ring that connects the petal tips - final step only */
   addStroke('M ' + (cx + R) + ',' + cy +
     ' A ' + R + ' ' + R + ' 0 1 1 ' + (cx - R) + ' ' + cy +
     ' A ' + R + ' ' + R + ' 0 1 1 ' + (cx + R) + ' ' + cy, SP_TOTAL, true);
@@ -642,7 +642,7 @@ function show(i){
 function submit(){
   if (submitting) return;
   if (!ENDPOINT){
-    alert('Applications aren’t open yet — the submission endpoint isn’t configured. (Owner: see SETUP.md)');
+    alert('Applications aren’t open yet. The submission endpoint isn’t configured. (Owner: see SETUP.md)');
     return;
   }
   submitting = true;
@@ -684,7 +684,7 @@ function submit(){
     .catch(function(){
       busy.classList.remove('on');
       submitting = false;
-      sections[TOTAL]._err.textContent = 'Network error — your answers are safe, hit submit again.';
+      sections[TOTAL]._err.textContent = 'Network error. Your answers are safe, hit submit again.';
     });
 }
 
