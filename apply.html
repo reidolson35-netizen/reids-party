@@ -247,6 +247,9 @@ function validate(q){
     case 'files':
       if (!q.req) return {ok:true};
       return fileStore[q.id].length >= 1 ? {ok:true} : {ok:false, msg:''};
+    case 'social':
+      if (socState.err) return {ok:false, msg:socState.err};
+      return v.length > 0 ? {ok:true} : {ok:false, msg:''};
     default:
       return v.length > 0 ? {ok:true} : {ok:false, msg:''};
   }
@@ -426,14 +429,51 @@ function buildFileZone(q, errEl, section){
 }
 
 /* ---------- social handle: pick a platform, then just type the handle.
-   answers.socials becomes a real profile URL so it's clickable on review. */
+   answers.socials becomes a real profile URL so it's clickable on review.
+   re = the platform's own username charset and length, nothing stricter,
+   so no real account can ever fail the format gate. */
 var SOCIALS = [
-  {name:'Instagram', base:'https://instagram.com/'},
-  {name:'TikTok',    base:'https://tiktok.com/@'},
-  {name:'Facebook',  base:'https://facebook.com/'},
-  {name:'x.com',     base:'https://x.com/'},
-  {name:'YouTube',   base:'https://youtube.com/@'}
+  {name:'Instagram', base:'https://instagram.com/', hosts:['instagram.com'],         re:/^[a-z0-9._]{1,30}$/i},
+  {name:'TikTok',    base:'https://tiktok.com/@',   hosts:['tiktok.com'],            re:/^[a-z0-9._]{1,24}$/i},
+  {name:'Facebook',  base:'https://facebook.com/',  hosts:['facebook.com','fb.com'], re:/^[a-z0-9.\-]{1,60}$/i},
+  {name:'x.com',     base:'https://x.com/',         hosts:['x.com','twitter.com'],   re:/^[a-z0-9_]{1,20}$/i},
+  {name:'YouTube',   base:'https://youtube.com/@',  hosts:['youtube.com'],           re:/^[a-z0-9._\-]{1,30}$/i}
 ];
+
+/* Turn whatever they typed into a profile URL. Pasted links from a listed
+   platform auto-pick it; weird-but-real profile links (share links,
+   /channel/..., profile.php?id=...) are kept verbatim, still clickable. */
+function parseSocial(raw, chosen){
+  var v = String(raw||'').trim().replace(/^@+/,'');
+  if (!v) return {url:'', err:''};
+  if (/\s/.test(v)) return {url:'', err:'Handles don’t have spaces. Just the @name from your profile.'};
+
+  var lower = v.toLowerCase(), hit = null, at = -1;
+  SOCIALS.forEach(function(p){
+    p.hosts.forEach(function(h){
+      if (hit) return;
+      var i = lower.indexOf(h + '/');
+      if (i >= 0 && (i === 0 || lower.charAt(i-1) === '.' || lower.charAt(i-1) === '/')){
+        hit = p; at = i + h.length + 1;
+      }
+    });
+  });
+
+  if (hit){
+    var rest = v.slice(at).replace(/^@+/,'');
+    var clean = rest.replace(/\/+$/,'');
+    if (!clean) return {plat:hit, url:'', err:'Add your handle after the link, or type just the handle.'};
+    if (!/[\/?#]/.test(clean) && hit.re.test(clean)) return {plat:hit, url: hit.base + clean};
+    return {plat:hit, url:(/^https?:\/\//i.test(v) ? v : 'https://' + v)};
+  }
+  if (/^https?:\/\//i.test(v) || /^www\./i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+\//i.test(v)){
+    return {url:'', err:'That link isn’t from a platform in the list. Pick one and give just the handle.'};
+  }
+  if (!chosen) return {url:'', err:'Pick a platform from the list.'};
+  if (!chosen.re.test(v)) return {url:'', err:'That doesn’t look like a real ' + chosen.name + ' handle.'};
+  return {url: chosen.base + v};
+}
+var socState = {err:''};
 
 function buildSocial(q, idx, errEl, section){
   var wrap = el('div');
@@ -447,8 +487,13 @@ function buildSocial(q, idx, errEl, section){
   var chosen = null;
 
   function commit(){
-    var handle = input.value.trim().replace(/^@+/,'').trim();
-    answers[q.id] = (chosen && handle) ? (chosen.base + handle) : '';
+    var parsed = parseSocial(input.value, chosen);
+    if (parsed.plat && parsed.plat !== chosen){
+      chosen = parsed.plat;
+      pick.textContent = chosen.name; pick.classList.add('sel');
+    }
+    socState.err = parsed.err || '';
+    answers[q.id] = parsed.url || '';
     saveDraft();
     refreshState(q, section);
   }
@@ -539,8 +584,42 @@ function advance(q, idx, errEl){
   if (q.req || !empty){
     if (!v.ok){ errEl.textContent = v.msg || 'This one’s required.'; return; }
   }
+  if (q.type === 'social' && !empty){ checkSocialThen(idx, errEl); return; }
   if (idx === TOTAL) submit();
   else show(idx + 1);
+}
+
+/* Soft existence check: ask the backend to look the profile up. Only a
+   definitive "account doesn't exist" pauses them, exactly once; any doubt
+   (bot walls, timeouts, a second Next on the same value) lets them through,
+   so a valid account can never be blocked. */
+var socChecked = {url:'', busy:false};
+function checkSocialThen(idx, errEl){
+  var url = String(answers.socials||'');
+  var s = sections[idx];
+  if (socChecked.busy) return;
+  if (!ENDPOINT || socChecked.url === url){ show(idx + 1); return; }
+  socChecked.busy = true;
+  s._next.disabled = true;
+  s._next.textContent = 'Checking…';
+  var done = false;
+  function finish(result){
+    if (done) return;
+    done = true;
+    socChecked = {url:url, busy:false};
+    s._next.disabled = false;
+    s._next.textContent = 'Next';
+    if (result === 'not_found'){
+      errEl.textContent = 'We couldn’t find that account. Double-check the handle, or hit Next again if you’re sure it’s right.';
+      return;
+    }
+    show(idx + 1);
+  }
+  setTimeout(function(){ finish('unknown'); }, 5000);
+  fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'check', url:url})})
+    .then(function(r){ return r.json(); })
+    .then(function(res){ finish(res && res.result === 'not_found' ? 'not_found' : 'ok'); })
+    .catch(function(){ finish('unknown'); });
 }
 
 /* 8-point flower, one outer layer. Each petal is split into little sub-arcs

@@ -238,6 +238,13 @@ function thumbUrl(u){
   return u;
 }
 
+/* existence verdict the worker stamped at submit time; silent when unknown */
+function socBadge(v){
+  if (v === 'ok') return ' <span style="color:var(--ok);font-weight:700;font-size:12px">account found</span>';
+  if (v === 'not_found') return ' <span style="color:var(--bad);font-weight:700;font-size:12px">account not found</span>';
+  return '';
+}
+
 function linkifySocials(s){
   return String(s||'').split(/[\s,]+/).filter(Boolean).map(function(tk){
     if (/\./.test(tk)){
@@ -298,7 +305,7 @@ function render(){
         '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>' +
         '<a href="tel:' + esc(String(r.phone).replace(/[^\d+]/g,'')) + '">' + esc(r.phone) + '</a>' +
       '</div>' +
-      qa('Socials', linkifySocials(r.socials)) +
+      qa('Socials', linkifySocials(r.socials) + socBadge(r.soc_check)) +
       qa('Why they want in', esc(r.why)) +
       qa('Working on', esc(r.working)) +
       qa('Contrarian take', esc(r.contrarian)) +

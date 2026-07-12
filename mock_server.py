@@ -104,6 +104,9 @@ class Handler(SimpleHTTPRequestHandler):
         except (ValueError, TypeError):
             return self._json({"ok": False, "error": "bad request"})
 
+        if p.get("action") == "check":
+            # mirror the worker's fail-open contract; no real lookups locally
+            return self._json({"ok": True, "result": "unknown"})
         if p.get("action") == "setStatus":
             return self._set_status(p)
         if p.get("action") == "delete":

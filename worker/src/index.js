@@ -57,6 +57,52 @@ async function bump(env, base, windowSecs) {
   return row ? row.count : 1;
 }
 
+/* profile hosts the existence check may fetch (never an open proxy); bare and
+   legacy domains normalize to the variant that answers without a redirect */
+var CHECK_HOSTS = {
+  'instagram.com': 'www.instagram.com',
+  'tiktok.com': 'www.tiktok.com',
+  'facebook.com': 'www.facebook.com',
+  'fb.com': 'www.facebook.com',
+  'x.com': 'x.com',
+  'twitter.com': 'x.com',
+  'youtube.com': 'www.youtube.com'
+};
+
+/* Look a profile URL up. Definitive 404/410 => not_found; 200 => ok; anything
+   else (login wall, bot wall, redirect, timeout) => unknown. Only not_found
+   may pause the form, so a valid account can never be falsely rejected.
+   ponytail: no per-platform body sniffing; platforms that stonewall
+   datacenter IPs (Instagram, X) mostly come back unknown and that's fine. */
+async function checkSocial(target) {
+  var u;
+  try { u = new URL(String(target || '')); } catch (e) { return 'unknown'; }
+  var host = CHECK_HOSTS[u.hostname.replace(/^www\./, '').toLowerCase()];
+  if (u.protocol !== 'https:' || !host || u.pathname.length < 2) return 'unknown';
+  try {
+    var r = await fetch('https://' + host + u.pathname + u.search, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(4000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    if (r.status === 404 || r.status === 410) return 'not_found';
+    if (r.status !== 200) return 'unknown';
+    /* TikTok 200s missing users; its page JSON carries a definitive
+       user-not-found code (10221 today, 10202 historically). Bot shells
+       have neither marker and stay unknown, so still fail-open. */
+    if (host === 'www.tiktok.com') {
+      var body = await r.text();
+      if (body.indexOf('"statusCode":10221') >= 0 || body.indexOf('"statusCode":10202') >= 0) return 'not_found';
+      return body.indexOf('"uniqueId":"') >= 0 ? 'ok' : 'unknown';
+    }
+    return 'ok';
+  } catch (e) { return 'unknown'; }
+}
+
 function rowOut(r, origin) {
   var imgs = [], ids = [];
   try { imgs = JSON.parse(r.images_json || '[]'); } catch (e) {}
@@ -66,7 +112,7 @@ function rowOut(r, origin) {
     n: r.n, ts: r.ts, status: r.status, name: r.name, age: r.age,
     email: r.email, phone: r.phone, socials: r.socials,
     why: r.why, working: r.working, contrarian: r.contrarian, want: r.want || '',
-    ref: r.ref || '',
+    ref: r.ref || '', soc_check: r.soc_check || '',
     images: imgs.map(abs), id_images: ids.map(abs)
   };
 }
@@ -144,6 +190,13 @@ async function submit(env, ctx, p, rawBody, ip) {
     } catch (e) {}
   }
 
+  /* stamp the socials existence verdict for the admin badge (post-response) */
+  ctx.waitUntil(
+    checkSocial(a.socials).then(function (v) {
+      return env.DB.prepare('UPDATE applications SET soc_check=? WHERE n=?').bind(v, n).run();
+    }).catch(function () {})
+  );
+
   /* best-effort mirror to the legacy Apps Script (Sheet + notify email) */
   if (env.LEGACY_EXEC) {
     ctx.waitUntil(
@@ -199,6 +252,14 @@ async function handle(request, env, ctx) {
     if (raw.length > 9000000) return json({ ok: false, error: 'request too large' });
     var p;
     try { p = JSON.parse(raw); } catch (e) { return json({ ok: false, error: 'bad request' }); }
+
+    /* ---- public socials existence check (the form calls this on Next) ---- */
+    if (p.action === 'check') {
+      var tries = await bump(env, 'try:' + ip, 3600);
+      /* fail-open even when flooded: the form must never get stuck on this */
+      if (tries > ATTEMPTS_PER_IP_HOUR) return json({ ok: true, result: 'unknown' });
+      return json({ ok: true, result: await checkSocial(p.url) });
+    }
 
     /* ---- admin actions ---- */
     if (p.action) {
