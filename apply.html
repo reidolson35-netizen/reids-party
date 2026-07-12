@@ -6,8 +6,17 @@
 <title>Apply - Reid's Parties, Austin, TX</title>
 <meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. 20+.">
 <link rel="canonical" href="https://reidsparty.com/apply.html">
-<meta property="og:title" content="Reid's Parties">
-<meta property="og:description" content="Apply to Reid's Parties. Invite only. No fees. 20+.">
+<meta property="og:title" content="Apply to Reid's Parties">
+<meta property="og:description" content="Apply to Reid's Parties, vetted singles parties in Austin. No fees. 20+.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://reidsparty.com/apply.html">
+<meta property="og:site_name" content="Reid's Parties">
+<meta property="og:image" content="https://reidsparty.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://reidsparty.com/og.png">
+<meta name="apple-mobile-web-app-title" content="Reid's Parties">
 <meta name="theme-color" content="#fbf4c7">
 <script>
 /* first-touch source: remember how they originally found us (src= tag or external referrer) */
@@ -19,7 +28,10 @@ try{
   if(_v&&!localStorage.getItem('rp_src'))localStorage.setItem('rp_src',_v);
 }catch(e){}
 </script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="https://use.typekit.net/yvb0zhe.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,6 +87,13 @@ body{
 #spiro path{fill:none;stroke:var(--coral);stroke-linecap:round;stroke-linejoin:round;transition:stroke-dashoffset .6s ease}
 #spiro path.glow{stroke:rgba(240,115,107,.10);stroke-width:7}
 #spiro path.core{stroke-width:2;opacity:.38}
+/* phones: the flower becomes a small crest above the content (fullscreen
+   centered art was covering the thank-you text on small screens) */
+@media (max-width:640px){
+  .step.on{padding-top:calc(158px + env(safe-area-inset-top))}
+  #spiro path.glow{stroke-width:3.5}
+  #spiro path.core{stroke-width:1.4}
+}
 
 /* ---------- steps ---------- */
 .step{display:none}
@@ -652,8 +671,10 @@ function buildSpiro(){
   spiroSvg.innerHTML = '';
   petals = [];
   var NS = 'http://www.w3.org/2000/svg';
-  var cx = vw / 2, cy = vh / 2;
-  var R = Math.min(vw, vh) * 0.47;
+  /* phones: tiny crest at the top, matching the media query's padding */
+  var mini = vw <= 640;
+  var cx = vw / 2, cy = mini ? 96 : vh / 2;
+  var R = mini ? 46 : Math.min(vw, vh) * 0.47;
 
   function addStroke(d, idx, isRing){
     ['glow', 'core'].forEach(function(cls){
