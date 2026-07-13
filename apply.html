@@ -73,36 +73,38 @@ body{
 .btn:hover{box-shadow:0 10px 22px rgba(228,114,106,.26);transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
 .btn:disabled{opacity:.4;box-shadow:none;cursor:not-allowed;transform:none}
-.btn.ghost{background:transparent;border:2px solid var(--line);color:var(--rose-bold);box-shadow:none}
+/* padding 2px tighter: the border made Back 4px taller than Next */
+.btn.ghost{background:transparent;border:2px solid var(--line);padding:13px 28px;color:var(--rose-bold);box-shadow:none}
 .btn.ghost:hover{border-color:var(--coral)}
 
 /* ---------- progress ---------- */
-#progress{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
+#progress{position:fixed;top:0;top:env(safe-area-inset-top);left:0;right:0;height:4px;background:rgba(240,115,107,.18);z-index:50}
 #progressFill{height:100%;width:0%;background:var(--coral);transition:width .35s ease}
 
 /* ---------- 8-point flower: separate petal strokes appear step by step; a
    ring joins the petal tips on the final screen. No CSS filters - the glow is
    a soft under-stroke per petal, which keeps phones smooth. ---------- */
-#spiro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:0;pointer-events:none;overflow:visible}
+#spiro{position:fixed;inset:0;width:100vw;height:100vh;height:100svh;z-index:0;pointer-events:none;overflow:visible}
 #spiro path{fill:none;stroke:var(--coral);stroke-linecap:round;stroke-linejoin:round;transition:stroke-dashoffset .6s ease}
 #spiro path.glow{stroke:rgba(240,115,107,.10);stroke-width:7}
 #spiro path.core{stroke-width:2;opacity:.38}
-/* phones: the flower becomes a small crest above the content (fullscreen
-   centered art was covering the thank-you text on small screens) */
-@media (max-width:640px){
-  .step.on{padding-top:calc(158px + env(safe-area-inset-top))}
-  #spiro path.glow{stroke-width:3.5}
-  #spiro path.core{stroke-width:1.4}
-}
-
 /* ---------- steps ---------- */
 .step{display:none}
 .step.on{
   position:relative;z-index:1;
   display:flex;flex-direction:column;justify-content:center;
-  min-height:100dvh;max-width:640px;margin:0 auto;
+  /* svh, not dvh: dvh recentered the step whenever the mobile URL bar moved */
+  min-height:100vh;min-height:100svh;max-width:640px;margin:0 auto;
   padding:40px 22px calc(40px + env(safe-area-inset-bottom));
   animation:fadeUp .4s ease both;
+}
+/* phones: the flower becomes a small crest above the content (fullscreen
+   centered art was covering the thank-you text on small screens). Must stay
+   BELOW the .step.on rule - its padding shorthand stomps this padding-top */
+@media (max-width:640px){
+  .step.on{padding-top:calc(158px + env(safe-area-inset-top))}
+  #spiro path.glow{stroke-width:3.5}
+  #spiro path.core{stroke-width:1.4}
 }
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 
@@ -205,7 +207,7 @@ var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
 var QUESTIONS = [
   {id:'email',     type:'email',    label:'Email', helper:'Only used to contact you about the party.', req:true, ph:'you@example.com'},
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
-  {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'example: yourhandle'},
+  {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'yourhandle'},
   {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only.', req:true, ph:'20+'},
   {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters.', req:true, min:10, max:140},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
@@ -664,9 +666,15 @@ function petalSegD(cx, cy, rIn, rOut, rot, f0, f1){
   return d;
 }
 
+var spW = 0, spH = 0;
 function buildSpiro(){
   if (!spiroSvg) return;
-  var vw = window.innerWidth, vh = window.innerHeight;
+  /* measure the svg itself so the viewBox always matches what's rendered -
+     window.innerHeight drifts from the fixed 100svh box as the URL bar moves,
+     and a mismatched viewBox rescales (shakes) the art */
+  var box = spiroSvg.getBoundingClientRect();
+  var vw = Math.round(box.width), vh = Math.round(box.height);
+  spW = vw; spH = vh;
   spiroSvg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
   spiroSvg.innerHTML = '';
   petals = [];
@@ -720,7 +728,11 @@ function applySpiro(instant){
   }
 }
 var spT = null;
-window.addEventListener('resize', function(){ clearTimeout(spT); spT = setTimeout(buildSpiro, 180); }, {passive:true});
+window.addEventListener('resize', function(){ clearTimeout(spT); spT = setTimeout(function(){
+  /* URL-bar resizes don't change the 100svh box - skip the rebuild flash */
+  var b = spiroSvg.getBoundingClientRect();
+  if (Math.round(b.width) !== spW || Math.round(b.height) !== spH) buildSpiro();
+}, 180); }, {passive:true});
 
 function show(i){
   step = Math.max(0, Math.min(TOTAL + 1, i));

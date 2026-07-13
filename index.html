@@ -149,14 +149,16 @@ main{position:relative}
 /* ---------- hero (centered) ---------- */
 .hero{
   position:relative;
-  min-height:100dvh;max-width:820px;margin:0 auto;
+  /* svh, not dvh: dvh reflowed the whole page every time the mobile URL bar
+     collapsed, which read as layout shake while scrolling */
+  min-height:100vh;min-height:100svh;max-width:820px;margin:0 auto;
   display:flex;flex-direction:column;justify-content:center;align-items:center;
   text-align:center;
   padding:40px 22px calc(96px + env(safe-area-inset-bottom));
 }
 .logo{
   font-family:var(--fdisp);font-weight:700;
-  font-size:clamp(46px,11vw,96px);line-height:1;
+  font-size:clamp(40px,11vw,96px);line-height:1; /* 46px floor overflowed the padding on 320px phones */
   color:var(--rose-bold);
   letter-spacing:-.01em;margin:0 0 18px;
   text-decoration:underline;
@@ -171,6 +173,7 @@ main{position:relative}
 .tag.sub{font-weight:400;font-size:clamp(14px,2vw,16px);color:var(--rose-head);margin:0 0 34px}
 .next{font-family:var(--fsans);font-weight:600;font-size:clamp(15px,2.2vw,18px);line-height:1.4;color:var(--rose);margin:0}
 .cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:clamp(30px,5.5vh,50px)}
+.cta .btn{font-size:19px;padding:18px 40px}
 
 /* ---------- about: alternating question / answer rows ---------- */
 #about{max-width:1000px;margin:0 auto;padding:20px 22px 40px}
@@ -215,7 +218,6 @@ main{position:relative}
       <p class="tag sub">So we&rsquo;re throwing application-based, mostly-<b>singles parties</b> for genuinely interesting people.</p>
       <p class="next">Next party: Sep 5, 2026</p>
       <div class="cta">
-        <a class="btn" href="#about">About us</a>
         <a class="btn" href="apply.html">Apply here</a>
       </div>
     </section>
@@ -295,9 +297,11 @@ function smoothPath(pts){
   return d;
 }
 
+var builtW = 0, builtH = 0;
 function buildTrail(){
   var main = document.querySelector('main');
   var W = main.offsetWidth, H = main.offsetHeight;
+  builtW = W; builtH = H;
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
   var eb = pageBox(endBtn);
@@ -305,35 +309,48 @@ function buildTrail(){
   var hero = pageBox(document.querySelector('.hero'));
   var ex = eb.x + eb.w / 2, ey = eb.y - 4;
 
+  /* phones: an almost-straight rail down the RIGHT side that sweeps in to
+     the Apply button at the end; desktop: the centered wave */
+  var rail = narrow ? W * 0.84 : W * 0.5;
+
   /* resting stub sits at the bottom of the first screen and points STRAIGHT
      down - three collinear points keep the spline vertical through it */
   var sy0 = hero.y + hero.h - 96;
   var pts = [
-    {x: W * 0.5, y: sy0},
-    {x: W * 0.5, y: sy0 + 74},
-    {x: W * 0.5, y: sy0 + 150}
+    {x: rail, y: sy0},
+    {x: rail, y: sy0 + 74},
+    {x: rail, y: sy0 + 150}
   ];
 
   /* one mostly-straight line down the middle with three IDENTICAL gentle
      bends. The wave is cosine-eased between quarter points, so the slope is
      perfectly vertical at every junction - the straight stub melts into the
      first bend (and the wave into the button run) with no visible seam. */
-  var amp = narrow ? W * 0.13 : Math.min(W * 0.11, 130);
-  var yTop = sy0 + 150, yBot = ey - 150;
+  /* phone sway is a few px - "curve very slightly to be elegant" */
+  var amp = narrow ? Math.max(8, W * 0.025) : Math.min(W * 0.11, 130);
+  var yTop = sy0 + 150, yBot = ey - (narrow ? 280 : 150);
   var waveX = [0, -amp, amp, -amp, 0];
   for (var seg = 0; seg < 4; seg++){
-    var x0 = W * 0.5 + waveX[seg], x1 = W * 0.5 + waveX[seg + 1];
+    var x0 = rail + waveX[seg], x1 = rail + waveX[seg + 1];
     var y0 = yTop + (yBot - yTop) * seg / 4, y1 = yTop + (yBot - yTop) * (seg + 1) / 4;
     for (var s = 1; s <= 14; s++){
       var t = s / 14;
       pts.push({x: x0 + (x1 - x0) * (1 - Math.cos(Math.PI * t)) / 2, y: y0 + (y1 - y0) * t});
     }
   }
-  /* finish with interpolated (near-collinear) points - one long hop after the
-     dense wave samples makes the spline overshoot into a visible blip */
-  [0.35, 0.7, 1].forEach(function(t){
-    pts.push({x: W * 0.5 + (ex - W * 0.5) * t, y: yBot + (ey - yBot) * t});
-  });
+  if (narrow){
+    /* cosine-eased sweep off the rail: leaves vertically, arrives vertically,
+       dead-center on the Apply button */
+    [0.25, 0.5, 0.75, 1].forEach(function(t){
+      pts.push({x: rail + (ex - rail) * (1 - Math.cos(Math.PI * t)) / 2, y: yBot + (ey - yBot) * t});
+    });
+  } else {
+    /* finish with interpolated (near-collinear) points - one long hop after the
+       dense wave samples makes the spline overshoot into a visible blip */
+    [0.35, 0.7, 1].forEach(function(t){
+      pts.push({x: W * 0.5 + (ex - W * 0.5) * t, y: yBot + (ey - yBot) * t});
+    });
+  }
   path.setAttribute('d', smoothPath(pts));
 
   /* highlighted words the line happens to cross glow as the tip passes */
@@ -408,19 +425,18 @@ function onScroll(){
 }
 
 var rsT = null;
-function onResize(){ clearTimeout(rsT); rsT = setTimeout(buildTrail, 180); }
+function onResize(){ clearTimeout(rsT); rsT = setTimeout(function(){
+  /* the mobile URL bar showing/hiding fires resize without changing the
+     layout - rebuilding then snaps the tip mid-scroll */
+  var m = document.querySelector('main');
+  if (m.offsetWidth !== builtW || m.offsetHeight !== builtH) buildTrail();
+}, 180); }
 
 window.addEventListener('scroll', onScroll, {passive:true});
 window.addEventListener('resize', onResize, {passive:true});
 buildTrail();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildTrail);
 window.addEventListener('load', buildTrail);
-
-/* About us: just a gentle nudge, not a jump to the section */
-document.querySelector('.cta a[href="#about"]').addEventListener('click', function(e){
-  e.preventDefault();
-  window.scrollBy({top: Math.round(window.innerHeight * 0.62), behavior: 'smooth'});
-});
 })();
 </script>
 </body>
