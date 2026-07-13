@@ -108,7 +108,7 @@ async function activeStep() {
     width: 390, height: 844, deviceScaleFactor: 2, mobile: true
   });
   await send('Page.navigate', { url: SITE + 'apply.html' });
-  await waitFor(`document.querySelectorAll('.step').length === 11`, 10000, 'app built');
+  await waitFor(`document.querySelectorAll('.step').length === 10`, 10000, 'app built');
   await sleep(700); // fonts
 
   // -- layout: no horizontal overflow on any step -----------------------------
@@ -156,21 +156,19 @@ async function activeStep() {
   await typeIntoActive('I throw great toasts and clean up after.');
   await clickNext();
 
+  // 5 working - carries the inline optional uploader
+  const hasUpload = await eval_(`(function(){var s=document.querySelector('.step.on');return !!s.querySelector('.urow .btn') && /photos or documents/i.test(s.textContent);})()`);
+  check('working step has Upload button + note', hasUpload === true);
   await typeIntoActive('An automated video editing brain called Jeriathan.\nIt cuts dialogue like Reid does.');
-  await clickNext();                                                    // 5 working
-
-  // 6 images - optional, test SKIP path
-  const skipLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
-  check('optional empty step shows SKIP', /skip/i.test(skipLabel), skipLabel);
   await clickNext();
 
   await typeIntoActive('Most parties are bad because of the host, not the guests.');
-  await clickNext();                                                    // 7 contrarian
+  await clickNext();                                                    // 6 contrarian
   await typeIntoActive('Real friends, and maybe a partner.');
-  await clickNext();                                                    // 8 want
-  await typeIntoActive('(555) 867-5309');                               // 9 contact (phone or email) - last question
+  await clickNext();                                                    // 7 want
+  await typeIntoActive('(555) 867-5309');                               // 8 contact (phone or email) - last question
   const lastStep = await activeStep();
-  check('arrived at last step (9, contact)', lastStep === 9, 'step=' + lastStep);
+  check('arrived at last step (8, contact)', lastStep === 8, 'step=' + lastStep);
 
   const submitLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
   check('final button says SUBMIT', /submit/i.test(submitLabel), submitLabel);

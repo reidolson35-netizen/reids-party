@@ -51,7 +51,8 @@ def save_images(arr, n, tag, cap):
             b64 = b64.split(",")[-1]
         if not b64:
             continue
-        name = f"{n:03d}-{tag}-{i + 1}.jpg"
+        ext = "pdf" if str(f.get("type", "")) == "application/pdf" else "jpg"
+        name = f"{n:03d}-{tag}-{i + 1}.{ext}"
         with open(os.path.join(UPLOADS, name), "wb") as fh:
             fh.write(base64.b64decode(b64))
         urls.append(f"/uploads/{name}")

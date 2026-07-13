@@ -21,7 +21,7 @@ var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
 /* email/phone left out: the form asks one "how should we contact you?"
    question and fills whichever fits - at least one must be present */
 var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'want'];
-var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 /* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
    cap counts only ACCEPTED submissions; raw attempts get a loose flood guard. */
 var SUB_OK_PER_IP_HOUR = 20;

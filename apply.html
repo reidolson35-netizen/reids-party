@@ -156,14 +156,12 @@ textarea.inp{resize:vertical;min-height:150px;line-height:1.5}
 }
 .popt:hover{background:rgba(240,115,107,.10);color:var(--rose-bold)}
 
-/* ---------- file zone ---------- */
-.fzone{
-  border:2px dashed var(--line);border-radius:16px;padding:30px 20px;text-align:center;
-  background:#fffdf4;color:var(--rose);cursor:pointer;font-weight:700;font-size:15px;
-  transition:border-color .15s;
-}
-.fzone:hover{border-color:var(--coral)}
+/* ---------- optional uploader ---------- */
+.urow{display:flex;align-items:center;gap:14px;margin-top:6px}
+.btn.small{padding:10px 20px;font-size:14px}
+.unote{font-weight:500;font-size:13px;line-height:1.4;color:var(--rose)}
 .thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.thumb.doc{display:flex;align-items:center;justify-content:center;background:#fffdf4;color:var(--rose-bold);font-weight:800;font-size:13px;letter-spacing:.08em}
 .thumb{position:relative;width:86px;height:86px;border-radius:12px;overflow:hidden;border:2px solid var(--line)}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb button{
@@ -209,11 +207,10 @@ var QUESTIONS = [
   {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'yourhandle'},
   {id:'age',       type:'age',      label:'What is your age?', helper:'Must be between 20-26.', req:true, ph:'20-26'},
   {id:'why',       type:'textarea', label:'Provide 1 (or a few) reasons why you want to come to our party', req:true},
-  {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
-  {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional, up to 5 images.', req:false, max:5},
+  {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true, files:true, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
   {id:'want',      type:'textarea', label:'What do you want?', helper:'Answer this however you’d like.', req:true},
-  {id:'contact',   type:'contact',  label:'How should we contact you?', helper:'Phone number or email, either one.', req:true, ph:'Phone or email'}
+  {id:'contact',   type:'contact',  label:'How should we contact you?', helper:'Phone number or email, whichever one you won’t miss.', req:true, ph:'Phone or email'}
 ];
 var TOTAL = QUESTIONS.length;
 
@@ -263,9 +260,6 @@ function validate(q){
       if (isNaN(n) || n < 1 || n > 120) return {ok:false, msg:'Enter your real age.'};
       if (n < 20 || n > 26) return {ok:false, msg:'Must be between 20-26 to apply.'};
       return {ok:true};
-    case 'files':
-      if (!q.req) return {ok:true};
-      return fileStore[q.id].length >= 1 ? {ok:true} : {ok:false, msg:''};
     case 'social':
       if (socState.err) return {ok:false, msg:socState.err};
       return v.length > 0 ? {ok:true} : {ok:false, msg:''};
@@ -330,8 +324,6 @@ function buildQuestion(q, idx){
   if (q.type === 'textarea'){
     input = el('textarea','inp');
     input.rows = 7;
-  } else if (q.type === 'files'){
-    input = buildFileZone(q, errEl, s);
   } else if (q.type === 'social'){
     input = buildSocial(q, idx, errEl, s);
   } else {
@@ -347,6 +339,7 @@ function buildQuestion(q, idx){
   var meta = el('div','meta');
   meta.appendChild(errEl);
   inputWrap.appendChild(meta);
+  if (q.files) inputWrap.appendChild(buildUploader(q, errEl));
   s.appendChild(inputWrap);
 
   var nav = el('div','nav');
@@ -382,59 +375,77 @@ function buildQuestion(q, idx){
 
 function pad2(n){ return String(n).padStart(2,'0'); }
 
-function buildFileZone(q, errEl, section){
+/* compact optional uploader under a question: small Upload button + note.
+   Images get canvas-compressed; PDFs ride along raw (worker stores base64
+   up to 2.5M chars, so cap PDFs at ~1.8 MB before encoding). */
+function buildUploader(q, errEl){
   var wrap = el('div');
-  var zone = el('div','fzone', 'Tap to add images');
+  var row = el('div','urow');
+  var btn = el('button','btn ghost small','Upload'); btn.type = 'button';
+  var note = el('span','unote','If you want to attach any photos or documents, do so here.');
   var fi = document.createElement('input');
   fi.type = 'file';
-  fi.accept = 'image/*';
+  fi.accept = 'image/*,application/pdf';
   fi.multiple = q.max > 1;
   fi.style.display = 'none';
   var thumbs = el('div','thumbs');
 
-  zone.addEventListener('click', function(){ fi.click(); });
+  btn.addEventListener('click', function(){ fi.click(); });
   fi.addEventListener('change', function(){
     var list = Array.prototype.slice.call(fi.files || []);
     fi.value = '';
-    var room = q.max - fileStore[q.id].length;
+    errEl.textContent = '';
+    var room = q.max - fileStore.images.length;
     if (list.length > room){
       list = list.slice(0, room);
-      errEl.textContent = 'Max ' + q.max + ' image' + (q.max>1?'s':'') + '.';
+      errEl.textContent = 'Max ' + q.max + ' files.';
     }
-    var maxDim = 1600, quality = 0.82;
     Promise.all(list.map(function(f){
-      return compressFile(f, maxDim, quality).catch(function(){ return null; });
+      if (f.type === 'application/pdf'){
+        if (f.size > 1800000){
+          errEl.textContent = 'PDFs need to be under 1.8 MB.';
+          return Promise.resolve(null);
+        }
+        return new Promise(function(res){
+          var r = new FileReader();
+          r.onload = function(){ res({name: f.name || 'document.pdf', type:'application/pdf', data: String(r.result).split(',')[1], thumb:''}); };
+          r.onerror = function(){ res(null); };
+          r.readAsDataURL(f);
+        });
+      }
+      return compressFile(f, 1600, 0.82).catch(function(){ return null; });
     })).then(function(items){
-      items.forEach(function(it){ if (it) fileStore[q.id].push(it); });
+      items.forEach(function(it){ if (it) fileStore.images.push(it); });
       renderThumbs();
-      refreshState(q, section);
     });
   });
 
   function renderThumbs(){
     thumbs.innerHTML = '';
-    fileStore[q.id].forEach(function(it, i){
-      var t = el('div','thumb');
-      var img = document.createElement('img');
-      img.src = it.thumb;
-      img.alt = '';
-      t.appendChild(img);
+    fileStore.images.forEach(function(it, i){
+      var t = el('div','thumb' + (it.thumb ? '' : ' doc'));
+      if (it.thumb){
+        var img = document.createElement('img');
+        img.src = it.thumb;
+        img.alt = '';
+        t.appendChild(img);
+      } else {
+        t.appendChild(el('span', null, 'PDF'));
+      }
       var x = el('button', null, '×');
-      x.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        fileStore[q.id].splice(i,1);
+      x.addEventListener('click', function(){
+        fileStore.images.splice(i,1);
         renderThumbs();
-        refreshState(q, section);
       });
       t.appendChild(x);
       thumbs.appendChild(t);
     });
-    zone.textContent = fileStore[q.id].length >= q.max
-      ? (fileStore[q.id].length + ' / ' + q.max + ' added')
-      : 'Tap to add images' + (fileStore[q.id].length ? ' (' + fileStore[q.id].length + ' / ' + q.max + ')' : '');
+    btn.textContent = fileStore.images.length >= q.max ? (fileStore.images.length + ' / ' + q.max) : 'Upload';
+    btn.disabled = fileStore.images.length >= q.max;
   }
 
-  wrap.appendChild(zone);
+  row.appendChild(btn); row.appendChild(note);
+  wrap.appendChild(row);
   wrap.appendChild(fi);
   wrap.appendChild(thumbs);
   return wrap;
@@ -572,8 +583,7 @@ function buildSuccess(){
 /* ---------- state / nav ---------- */
 function refreshState(q, section){
   var v = validate(q);
-  var empty = (q.type === 'files') ? fileStore[q.id].length === 0
-                                   : !String(answers[q.id]||'').trim();
+  var empty = !String(answers[q.id]||'').trim();
   if (!q.req && empty){
     section._next.textContent = 'Skip';
     section._next.disabled = false;
@@ -586,8 +596,7 @@ function refreshState(q, section){
 
 function advance(q, idx, errEl){
   var v = validate(q);
-  var empty = (q.type === 'files') ? fileStore[q.id].length === 0
-                                   : !String(answers[q.id]||'').trim();
+  var empty = !String(answers[q.id]||'').trim();
   if (q.req || !empty){
     if (!v.ok){ errEl.textContent = v.msg || 'This one’s required.'; return; }
   }
