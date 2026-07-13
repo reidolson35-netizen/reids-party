@@ -187,6 +187,8 @@ main{position:relative}
   .qa-row,.qa-row.flip{grid-template-columns:1fr;gap:14px}
   .qa-row.flip .q{order:0}
   .qa-row{margin-bottom:74px}
+  /* keep the text just clear of the right-side trail rail (0.9W, tiny sway) */
+  #about{padding-right:48px}
 }
 .qlabel{
   font-family:var(--fdisp);font-weight:700;
@@ -311,7 +313,7 @@ function buildTrail(){
 
   /* phones: an almost-straight rail down the RIGHT side that sweeps in to
      the Apply button at the end; desktop: the centered wave */
-  var rail = narrow ? W * 0.84 : W * 0.5;
+  var rail = narrow ? W * 0.9 : W * 0.5;
 
   /* resting stub sits at the bottom of the first screen and points STRAIGHT
      down - three collinear points keep the spline vertical through it */
@@ -340,10 +342,12 @@ function buildTrail(){
   }
   if (narrow){
     /* cosine-eased sweep off the rail: leaves vertically, arrives vertically,
-       dead-center on the Apply button */
-    [0.25, 0.5, 0.75, 1].forEach(function(t){
-      pts.push({x: rail + (ex - rail) * (1 - Math.cos(Math.PI * t)) / 2, y: yBot + (ey - yBot) * t});
-    });
+       dead-center on the Apply button. Sampled as densely as the wave - a
+       sparse hop here makes the spline overshoot into a visible blip */
+    for (var sw = 1; sw <= 14; sw++){
+      var tw = sw / 14;
+      pts.push({x: rail + (ex - rail) * (1 - Math.cos(Math.PI * tw)) / 2, y: yBot + (ey - yBot) * tw});
+    }
   } else {
     /* finish with interpolated (near-collinear) points - one long hop after the
        dense wave samples makes the spline overshoot into a visible blip */
@@ -385,7 +389,11 @@ var target = STUB, current = STUB, animating = false;
 
 function targetLen(){
   var doc = document.documentElement;
-  var max = (doc.scrollHeight - doc.clientHeight) || 1;
+  /* innerHeight, not clientHeight: iOS pins clientHeight at the small
+     URL-bar-visible height while max scroll runs against the expanded
+     viewport, so p never reached 1 and the line stopped short of the
+     button. The 0.985 finishes the draw just before the absolute bottom. */
+  var max = ((doc.scrollHeight - window.innerHeight) * 0.985) || 1;
   var p = Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) / max));
   return Math.max(STUB, len * p);
 }
