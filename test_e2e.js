@@ -108,7 +108,7 @@ async function activeStep() {
     width: 390, height: 844, deviceScaleFactor: 2, mobile: true
   });
   await send('Page.navigate', { url: SITE + 'apply.html' });
-  await waitFor(`document.querySelectorAll('.step').length === 12`, 10000, 'app built');
+  await waitFor(`document.querySelectorAll('.step').length === 11`, 10000, 'app built');
   await sleep(700); // fonts
 
   // -- layout: no horizontal overflow on any step -----------------------------
@@ -134,40 +134,43 @@ async function activeStep() {
   await waitFor(`(function(){var s=document.querySelector('.step.on');return s && s===document.querySelectorAll('.step')[1];})()`, 5000, 'q1 visible');
   check('intro APPLY advances to q1', true);
 
-  await typeIntoActive('jeri@test.com');   await clickNext();           // 1 email
-  await typeIntoActive('Jeri Athan');      await clickNext();           // 2 name
-  await typeIntoActive('instagram.com/_reidolson'); await clickNext();  // 3 socials
+  await typeIntoActive('Jeri Athan');      await clickNext();           // 1 name
+  await typeIntoActive('instagram.com/_reidolson'); await clickNext();  // 2 socials
 
-  // 4 age - under-20 gate first
+  // 3 age - out-of-band gates (20-26)
   await typeIntoActive('19');
   await sleep(100);
   const gateErr = await eval_(`document.querySelector('.step.on .err').textContent`);
   const gateDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
   check('under-20 blocks NEXT with message', gateDisabled && /20/.test(gateErr), JSON.stringify(gateErr));
-  await typeIntoActive('27'); await clickNext();
+  await typeIntoActive('27');
+  await sleep(100);
+  const overDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
+  check('over-26 blocks NEXT', overDisabled === true);
+  await typeIntoActive('24'); await clickNext();
 
-  // 5 why - char-count gate
+  // 4 why - no length limit anymore
   await typeIntoActive('short');
   const whyDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
-  check('why <10 chars keeps NEXT disabled', whyDisabled === true);
+  check('short why is accepted (no char limit)', whyDisabled === false);
   await typeIntoActive('I throw great toasts and clean up after.');
   await clickNext();
 
   await typeIntoActive('An automated video editing brain called Jeriathan.\nIt cuts dialogue like Reid does.');
-  await clickNext();                                                    // 6 working
+  await clickNext();                                                    // 5 working
 
-  // 7 images - optional, test SKIP path
+  // 6 images - optional, test SKIP path
   const skipLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
   check('optional empty step shows SKIP', /skip/i.test(skipLabel), skipLabel);
   await clickNext();
 
   await typeIntoActive('Most parties are bad because of the host, not the guests.');
-  await clickNext();                                                    // 8 contrarian
+  await clickNext();                                                    // 7 contrarian
   await typeIntoActive('Real friends, and maybe a partner.');
-  await clickNext();                                                    // 9 want
-  await typeIntoActive('(555) 867-5309');                               // 10 phone - last question
+  await clickNext();                                                    // 8 want
+  await typeIntoActive('(555) 867-5309');                               // 9 contact (phone or email) - last question
   const lastStep = await activeStep();
-  check('arrived at last step (10, phone)', lastStep === 10, 'step=' + lastStep);
+  check('arrived at last step (9, contact)', lastStep === 9, 'step=' + lastStep);
 
   const submitLabel = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].textContent;})()`);
   check('final button says SUBMIT', /submit/i.test(submitLabel), submitLabel);
@@ -188,10 +191,10 @@ async function activeStep() {
   const row = (list.rows || []).filter(r => r.name === 'Jeri Athan').pop();
   check('row exists in store via API', !!row);
   if (row) {
-    check('row fields round-trip', row.name === 'Jeri Athan' && row.age === 27 &&
-      row.email === 'jeri@test.com' && row.images.length === 0 &&
+    check('row fields round-trip', row.name === 'Jeri Athan' && row.age === 24 &&
+      row.phone === '(555) 867-5309' && row.email === '' && row.images.length === 0 &&
       row.want === 'Real friends, and maybe a partner.',
-      JSON.stringify({ name: row.name, age: row.age, want: row.want }));
+      JSON.stringify({ name: row.name, age: row.age, phone: row.phone, want: row.want }));
 
     // delete path - remove the row we just made and confirm it's gone
     const del = await (await fetch(EXEC, {method:'POST', body: JSON.stringify({action:'delete', token: TOKEN, n: row.n})})).json();

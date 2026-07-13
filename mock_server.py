@@ -26,7 +26,7 @@ except OSError:
     TOKEN = "partypass"
 
 STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
-REQUIRED = ["email", "name", "socials", "age", "why", "working", "contrarian", "want", "phone"]
+REQUIRED = ["name", "socials", "age", "why", "working", "contrarian", "want"]
 
 
 def load_rows():
@@ -149,15 +149,15 @@ class Handler(SimpleHTTPRequestHandler):
         for k in REQUIRED:
             if not str(a.get(k, "")).strip():
                 return self._json({"ok": False, "error": f"Missing required field: {k}"})
+        if not str(a.get("email", "")).strip() and not str(a.get("phone", "")).strip():
+            return self._json({"ok": False, "error": "Missing contact info."})
         try:
             age = int(str(a.get("age", "")).strip())
         except ValueError:
             age = 0
-        if age < 20:
-            return self._json({"ok": False, "error": "20+ only."})
+        if not (20 <= age <= 26):
+            return self._json({"ok": False, "error": "Must be between 20-26."})
         why = str(a.get("why", "")).strip()
-        if not (10 <= len(why) <= 140):
-            return self._json({"ok": False, "error": '"Why" must be 10-140 characters.'})
 
         with LOCK:
             rows = load_rows()

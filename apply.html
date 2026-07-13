@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Apply - Reid's Parties, Austin, TX</title>
-<meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. 20+.">
+<meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. Ages 20-26.">
 <link rel="canonical" href="https://reidsparty.com/apply.html">
 <meta property="og:title" content="Apply to Reid's Parties">
-<meta property="og:description" content="Apply to Reid's Parties, vetted singles parties in Austin. No fees. 20+.">
+<meta property="og:description" content="Apply to Reid's Parties, vetted singles parties in Austin. No fees. Ages 20-26.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://reidsparty.com/apply.html">
 <meta property="og:site_name" content="Reid's Parties">
@@ -203,18 +203,17 @@ var CFG = window.PARTY_CONFIG || {};
 var LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
 
-/* Questions mirror the original Google Form, plus mandatory age (20+). */
+/* One question per screen; contact (phone or email) comes last. */
 var QUESTIONS = [
-  {id:'email',     type:'email',    label:'Email', helper:'Only used to contact you about the party.', req:true, ph:'you@example.com'},
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
   {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'yourhandle'},
-  {id:'age',       type:'age',      label:'What is your age?', helper:'20+ only.', req:true, ph:'20+'},
-  {id:'why',       type:'why',      label:'Provide 1 (or a few) reasons why you want to come to our party', helper:'Between 10 and 140 characters.', req:true, min:10, max:140},
+  {id:'age',       type:'age',      label:'What is your age?', helper:'Must be between 20-26.', req:true, ph:'20-26'},
+  {id:'why',       type:'textarea', label:'Provide 1 (or a few) reasons why you want to come to our party', req:true},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true},
   {id:'images',    type:'files',    label:'If you want to upload any images with your previous response, do it here', helper:'Optional, up to 5 images.', req:false, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
   {id:'want',      type:'textarea', label:'What do you want?', helper:'Answer this however you’d like.', req:true},
-  {id:'phone',     type:'tel',      label:'Phone number', helper:'If you’re fit, this is how we’ll contact you.', req:true, ph:'(555) 555-5555'}
+  {id:'contact',   type:'contact',  label:'How should we contact you?', helper:'Phone number or email, either one.', req:true, ph:'Phone or email'}
 ];
 var TOTAL = QUESTIONS.length;
 
@@ -223,17 +222,21 @@ var fileStore = {images:[]};
 var step = 0;             /* 0 = intro, 1..TOTAL = questions, TOTAL+1 = success */
 var submitting = false;
 
-/* ---------- draft persistence (text answers only) ---------- */
+/* ---------- draft persistence (text answers only) ----------
+   sessionStorage on purpose: a draft only survives within its own tab, so a
+   later applicant on the same phone can never see a previous applicant's
+   answers. It still covers the real loss case (reload / accidental nav). */
 function saveDraft(){
-  try{ localStorage.setItem('rp_draft', JSON.stringify(answers)); }catch(e){}
+  try{ sessionStorage.setItem('rp_draft', JSON.stringify(answers)); }catch(e){}
 }
 function loadDraft(){
+  try{ localStorage.removeItem('rp_draft'); }catch(e){}  /* purge pre-2026-07-13 device-wide drafts */
   try{
-    var d = JSON.parse(localStorage.getItem('rp_draft') || 'null');
+    var d = JSON.parse(sessionStorage.getItem('rp_draft') || 'null');
     if (d && typeof d === 'object') answers = d;
   }catch(e){}
 }
-function clearDraft(){ try{ localStorage.removeItem('rp_draft'); }catch(e){} }
+function clearDraft(){ try{ sessionStorage.removeItem('rp_draft'); }catch(e){} }
 
 /* ---------- helpers ---------- */
 function el(tag, cls, html){
@@ -249,22 +252,17 @@ function esc(s){
 function validate(q){
   var v = String(answers[q.id] == null ? '' : answers[q.id]).trim();
   switch(q.type){
-    case 'email':
+    case 'contact':
       if (!v) return {ok:false, msg:''};
-      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? {ok:true} : {ok:false, msg:'That email doesn’t look right.'};
+      if (v.indexOf('@') >= 0)
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? {ok:true} : {ok:false, msg:'That email doesn’t look right.'};
+      return ((v.match(/\d/g)||[]).length >= 7) ? {ok:true} : {ok:false, msg:'That phone number looks short.'};
     case 'age':
       if (!v) return {ok:false, msg:''};
       var n = parseInt(v,10);
       if (isNaN(n) || n < 1 || n > 120) return {ok:false, msg:'Enter your real age.'};
-      if (n < 20) return {ok:false, msg:'20+ only. You must be 20 or older to apply.'};
+      if (n < 20 || n > 26) return {ok:false, msg:'Must be between 20-26 to apply.'};
       return {ok:true};
-    case 'why':
-      if (v.length < (q.min||10)) return {ok:false, msg:''};
-      if (v.length > (q.max||140)) return {ok:false, msg:'Max ' + q.max + ' characters.'};
-      return {ok:true};
-    case 'tel':
-      if (!v) return {ok:false, msg:''};
-      return ((v.match(/\d/g)||[]).length >= 7) ? {ok:true} : {ok:false, msg:'That phone number looks short.'};
     case 'files':
       if (!q.req) return {ok:true};
       return fileStore[q.id].length >= 1 ? {ok:true} : {ok:false, msg:''};
@@ -327,33 +325,27 @@ function buildQuestion(q, idx){
   if (q.helper) s.appendChild(el('p','qhelp', esc(q.helper)));
 
   var inputWrap = el('div');
-  var input = null, counter = null, errEl = el('div','err');
+  var input = null, errEl = el('div','err');
 
-  if (q.type === 'textarea' || q.type === 'why'){
+  if (q.type === 'textarea'){
     input = el('textarea','inp');
-    input.rows = (q.type === 'why') ? 3 : 7;
-    if (q.max) input.maxLength = q.max;
+    input.rows = 7;
   } else if (q.type === 'files'){
     input = buildFileZone(q, errEl, s);
   } else if (q.type === 'social'){
     input = buildSocial(q, idx, errEl, s);
   } else {
     input = el('input','inp');
-    input.type = (q.type === 'age') ? 'number' : (q.type === 'email' ? 'email' : (q.type === 'tel' ? 'tel' : 'text'));
+    input.type = (q.type === 'age') ? 'number' : 'text';
     if (q.type === 'age'){ input.min = 1; input.max = 120; input.inputMode = 'numeric'; }
-    if (q.type === 'email'){ input.autocapitalize = 'off'; input.inputMode = 'email'; }
-    if (q.type === 'tel'){ input.inputMode = 'tel'; }
-    input.autocomplete = ({email:'email', name:'name', phone:'tel'})[q.id] || 'off';
+    if (q.type === 'contact'){ input.autocapitalize = 'off'; }
+    input.autocomplete = (q.id === 'name') ? 'name' : 'off';
   }
   if (q.ph && input.tagName !== 'DIV') input.placeholder = q.ph;
   inputWrap.appendChild(input);
 
   var meta = el('div','meta');
   meta.appendChild(errEl);
-  if (q.type === 'why'){
-    counter = el('div','cnt','0 / ' + q.max);
-    meta.appendChild(counter);
-  }
   inputWrap.appendChild(meta);
   s.appendChild(inputWrap);
 
@@ -384,7 +376,6 @@ function buildQuestion(q, idx){
   s._q = q;
   s._input = input;
   s._next = next;
-  s._counter = counter;
   s._err = errEl;
   return s;
 }
@@ -591,11 +582,6 @@ function refreshState(q, section){
     section._next.disabled = !v.ok;
   }
   section._err.textContent = v.ok ? '' : (v.msg || '');
-  if (section._counter){
-    var len = String(answers[q.id]||'').trim().length;
-    section._counter.textContent = len + ' / ' + q.max;
-    section._counter.className = 'cnt' + ((len >= q.min && len <= q.max) ? ' ok' : '');
-  }
 }
 
 function advance(q, idx, errEl){
@@ -766,17 +752,22 @@ function submit(){
     ua: navigator.userAgent,
     ref: (function(){ try{ return (localStorage.getItem('rp_src')||document.referrer||'').slice(0,300); }catch(e){ return ''; } })(),
     ts: new Date().toISOString(),
-    answers: {
-      email: String(answers.email||'').trim(),
-      name: String(answers.name||'').trim(),
-      socials: String(answers.socials||'').trim(),
-      age: String(answers.age||'').trim(),
-      why: String(answers.why||'').trim(),
-      working: String(answers.working||'').trim(),
-      contrarian: String(answers.contrarian||'').trim(),
-      want: String(answers.want||'').trim(),
-      phone: String(answers.phone||'').trim()
-    },
+    answers: (function(){
+      /* one contact question feeds the existing email/phone columns */
+      var contact = String(answers.contact||'').trim();
+      var isEmail = contact.indexOf('@') >= 0;
+      return {
+        email: isEmail ? contact : '',
+        name: String(answers.name||'').trim(),
+        socials: String(answers.socials||'').trim(),
+        age: String(answers.age||'').trim(),
+        why: String(answers.why||'').trim(),
+        working: String(answers.working||'').trim(),
+        contrarian: String(answers.contrarian||'').trim(),
+        want: String(answers.want||'').trim(),
+        phone: isEmail ? '' : contact
+      };
+    })(),
     images: fileStore.images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; })
   };
 

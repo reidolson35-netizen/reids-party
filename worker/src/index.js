@@ -18,7 +18,9 @@
  */
 
 var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
-var REQUIRED = ['email', 'name', 'socials', 'age', 'why', 'working', 'contrarian', 'want', 'phone'];
+/* email/phone left out: the form asks one "how should we contact you?"
+   question and fills whichever fits - at least one must be present */
+var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'want'];
 var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 /* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
    cap counts only ACCEPTED submissions; raw attempts get a loose flood guard. */
@@ -138,11 +140,13 @@ async function submit(env, ctx, p, rawBody, ip) {
       return json({ ok: false, error: 'Missing required field: ' + REQUIRED[i] });
     }
   }
+  if (!String(a.email || '').trim() && !String(a.phone || '').trim()) {
+    return json({ ok: false, error: 'Missing contact info.' });
+  }
   var age = parseInt(a.age, 10);
   if (!(age >= 1 && age <= 120)) return json({ ok: false, error: 'Enter your real age.' });
-  if (!(age >= 20)) return json({ ok: false, error: '20+ only.' });
+  if (!(age >= 20 && age <= 26)) return json({ ok: false, error: 'Must be between 20-26.' });
   var why = String(a.why).trim();
-  if (why.length < 10 || why.length > 140) return json({ ok: false, error: '"Why" must be 10–140 characters.' });
 
   /* validation passed - only now does it count against the real caps */
   var okCount = await bump(env, 'sub:' + ip, 3600);
