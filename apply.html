@@ -798,6 +798,8 @@ function submit(){
       if (res && res.ok){
         clearDraft();
         show(TOTAL + 1);
+        /* success screen is the only state marked in the URL (ad tools can match on it) */
+        try{ history.replaceState(null, '', '?share'); }catch(e){}
       } else {
         var last = sections[TOTAL];
         last._err.textContent = (res && res.error) ? res.error : 'Something broke. Try again.';
