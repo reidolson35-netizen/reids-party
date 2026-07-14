@@ -29,6 +29,9 @@ try{
   /* TikTok click id (ad-click attribution; sent server-side on submit only) */
   var _tt=new URLSearchParams(location.search).get('ttclid');
   if(_tt&&!localStorage.getItem('rp_ttclid'))localStorage.setItem('rp_ttclid',_tt);
+  /* Meta click id (same deal: server-side attribution only) */
+  var _fb=new URLSearchParams(location.search).get('fbclid');
+  if(_fb&&!localStorage.getItem('rp_fbclid'))localStorage.setItem('rp_fbclid',_fb);
   /* visit counter: one pixel per browser session; server stores day x page x source only */
   if(!sessionStorage.getItem('rp_v')){
     sessionStorage.setItem('rp_v','1');
@@ -770,6 +773,7 @@ function submit(){
     ua: navigator.userAgent,
     ref: (function(){ try{ return (localStorage.getItem('rp_src')||document.referrer||'').slice(0,300); }catch(e){ return ''; } })(),
     ttclid: (function(){ try{ return (localStorage.getItem('rp_ttclid')||'').slice(0,200); }catch(e){ return ''; } })(),
+    fbclid: (function(){ try{ return (localStorage.getItem('rp_fbclid')||'').slice(0,200); }catch(e){ return ''; } })(),
     ts: new Date().toISOString(),
     answers: (function(){
       /* one contact question feeds the existing email/phone columns */

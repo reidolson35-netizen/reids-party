@@ -227,6 +227,32 @@ async function submit(env, ctx, p, rawBody, ip) {
     );
   }
 
+  /* server-side Meta conversion (Conversions API; no Meta code runs in the browser).
+     Same stance as TikTok: ip/ua/fbclid only - never applicant email or phone.
+     URL carries ?share so Reid's "URL contains share" custom conversion matches.
+     Inert until META_PIXEL_ID + META_TOKEN secrets are set. */
+  if (env.META_PIXEL_ID && env.META_TOKEN) {
+    var fbUser = { client_ip_address: ip, client_user_agent: String(p.ua || '').slice(0, 400) };
+    var fbclid = String(p.fbclid || '').slice(0, 200);
+    if (fbclid) fbUser.fbc = 'fb.1.' + Date.now() + '.' + fbclid;
+    ctx.waitUntil(
+      fetch('https://graph.facebook.com/v25.0/' + env.META_PIXEL_ID + '/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: env.META_TOKEN,
+          data: [{
+            event_name: 'Lead',
+            event_time: Math.floor(Date.now() / 1000),
+            action_source: 'website',
+            event_source_url: 'https://reidsparty.com/apply.html?share',
+            user_data: fbUser
+          }]
+        })
+      }).catch(function () {})
+    );
+  }
+
   /* best-effort mirror to the legacy Apps Script (Sheet + notify email) */
   if (env.LEGACY_EXEC) {
     ctx.waitUntil(
