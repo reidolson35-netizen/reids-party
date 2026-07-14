@@ -29,6 +29,12 @@ try{
   /* TikTok click id (ad-click attribution; sent server-side on submit only) */
   var _tt=new URLSearchParams(location.search).get('ttclid');
   if(_tt&&!localStorage.getItem('rp_ttclid'))localStorage.setItem('rp_ttclid',_tt);
+  /* visit counter: one pixel per browser session; server stores day x page x source only */
+  if(!sessionStorage.getItem('rp_v')){
+    sessionStorage.setItem('rp_v','1');
+    var _u=new URLSearchParams(location.search).get('utm_source');
+    new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent(location.pathname)+'&r='+encodeURIComponent(_q||_u||_r);
+  }
 }catch(e){}
 </script>
 <script type="application/ld+json">

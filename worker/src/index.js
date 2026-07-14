@@ -9,6 +9,8 @@
  *  - POST {action:'list'|'setStatus'|'delete'|'import', token, ...}: admin.
  *    (GET ?action=list&token=… kept for the verify script.)
  *  - GET /img/<key>: applicant-uploaded images (unguessable random keys).
+ *  - GET /hit: pixel visit counter (day x page x source, no PII).
+ *    GET ?action=hits&token=…: read the counters.
  *
  * Abuse protection (the reason this Worker exists - Apps Script can't see
  * IPs): per-IP submission limit, small global daily cap, and a per-IP
@@ -264,8 +266,31 @@ async function handle(request, env, ctx) {
       });
     }
 
+    /* GET /hit: visit beacon from the public pages (an <img> pixel, so no
+       CORS preflight). Stores aggregated counters only - never IP/UA/PII. */
+    if (request.method === 'GET' && url.pathname === '/hit') {
+      /* ponytail: per-IP hourly cap (reuses rl) bounds junk ?src= row growth */
+      if (await bump(env, 'hit:' + ip, 3600) <= 120) {
+        var src = String(url.searchParams.get('r') || '').slice(0, 300);
+        if (src.indexOf('://') > 0) {
+          try { src = new URL(src).hostname.replace(/^www\./, ''); } catch (e) { src = ''; }
+        }
+        src = (src || '(direct)').toLowerCase().slice(0, 40);
+        await env.DB.prepare(
+          'INSERT INTO hits(day,page,src,n) VALUES(date(),?,?,1) ' +
+          'ON CONFLICT(day,page,src) DO UPDATE SET n=n+1'
+        ).bind(String(url.searchParams.get('p') || '/').slice(0, 40), src).run();
+      }
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
     /* GET: health + legacy-style list (used by verify_endpoint.sh) */
     if (request.method === 'GET') {
+      if (url.searchParams.get('action') === 'hits') {
+        var gateH = await requireToken(env, ip, url.searchParams.get('token') || '');
+        if (gateH) return gateH;
+        return json({ ok: true, rows: (await env.DB.prepare('SELECT * FROM hits ORDER BY day DESC, n DESC').all()).results || [] });
+      }
       if (url.searchParams.get('action') === 'list') {
         var gate = await requireToken(env, ip, url.searchParams.get('token') || '');
         if (gate) return gate;
