@@ -215,7 +215,7 @@ async function submit(env, ctx, p, rawBody, ip) {
           event_source: 'web',
           event_source_id: 'D9AQLNRC77UARCKB4K2G',
           data: [{
-            event: 'SubmitForm',
+            event: 'Lead',
             event_time: Math.floor(Date.now() / 1000),
             user: ttUser,
             page: { url: 'https://reidsparty.com/apply.html' }
