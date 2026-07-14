@@ -26,6 +26,9 @@ try{
   if(_r.indexOf(location.origin)===0)_r='';
   var _v=(_q?'src='+_q+(_r?' · ':''):'')+_r;
   if(_v&&!localStorage.getItem('rp_src'))localStorage.setItem('rp_src',_v);
+  /* TikTok click id (ad-click attribution; sent server-side on submit only) */
+  var _tt=new URLSearchParams(location.search).get('ttclid');
+  if(_tt&&!localStorage.getItem('rp_ttclid'))localStorage.setItem('rp_ttclid',_tt);
 }catch(e){}
 </script>
 <script type="application/ld+json">

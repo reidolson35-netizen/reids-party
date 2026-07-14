@@ -201,6 +201,30 @@ async function submit(env, ctx, p, rawBody, ip) {
     }).catch(function () {})
   );
 
+  /* server-side TikTok conversion (Events API; no TikTok code runs in the browser).
+     Deliberately minimal: ip/ua/ttclid only - never applicant email or phone. */
+  if (env.TIKTOK_TOKEN) {
+    var ttUser = { ip: ip, user_agent: String(p.ua || '').slice(0, 400) };
+    var ttclid = String(p.ttclid || '').slice(0, 200);
+    if (ttclid) ttUser.ttclid = ttclid;
+    ctx.waitUntil(
+      fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {
+        method: 'POST',
+        headers: { 'Access-Token': env.TIKTOK_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_source: 'web',
+          event_source_id: 'D9AQLNRC77UARCKB4K2G',
+          data: [{
+            event: 'CompleteRegistration',
+            event_time: Math.floor(Date.now() / 1000),
+            user: ttUser,
+            page: { url: 'https://reidsparty.com/apply.html' }
+          }]
+        })
+      }).catch(function () {})
+    );
+  }
+
   /* best-effort mirror to the legacy Apps Script (Sheet + notify email) */
   if (env.LEGACY_EXEC) {
     ctx.waitUntil(

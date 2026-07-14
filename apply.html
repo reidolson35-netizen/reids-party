@@ -26,6 +26,9 @@ try{
   if(_r.indexOf(location.origin)===0)_r='';
   var _v=(_q?'src='+_q+(_r?' · ':''):'')+_r;
   if(_v&&!localStorage.getItem('rp_src'))localStorage.setItem('rp_src',_v);
+  /* TikTok click id (ad-click attribution; sent server-side on submit only) */
+  var _tt=new URLSearchParams(location.search).get('ttclid');
+  if(_tt&&!localStorage.getItem('rp_ttclid'))localStorage.setItem('rp_ttclid',_tt);
 }catch(e){}
 </script>
 <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -760,6 +763,7 @@ function submit(){
     hp: document.getElementById('hp').value || '',
     ua: navigator.userAgent,
     ref: (function(){ try{ return (localStorage.getItem('rp_src')||document.referrer||'').slice(0,300); }catch(e){ return ''; } })(),
+    ttclid: (function(){ try{ return (localStorage.getItem('rp_ttclid')||'').slice(0,200); }catch(e){ return ''; } })(),
     ts: new Date().toISOString(),
     answers: (function(){
       /* one contact question feeds the existing email/phone columns */
