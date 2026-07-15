@@ -27,9 +27,9 @@ var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'want'
 /* Reid's copy (straight apostrophes on purpose: keeps SMS in GSM-7, fewer segments) */
 function waiverMsg(link) {
   return "You've been accepted.\n\n" +
-    "We reviewed your application for Reid's Parties, and we think you're a great fit.\n\n" +
-    'Last thing before we see you on September 5th, at 7 pm: Please fill out this Expectation waiver. ' + link + '\n\n' +
-    'This is to keep our parties friendly, well intended, and safe.';
+    "We reviewed your application for Reid's Parties, and we think you're a great fit!\n\n" +
+    'One last thing: Please fill out this Expectation waiver.\n\n' + link + '\n\n' +
+    'This is to keep our parties friendly and safe.';
 }
 function waiverThanksMsg() {
   return "Thanks! We got your waiver. We'll send you the address on September 4th. It will be in Central Austin.";
