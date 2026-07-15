@@ -109,7 +109,16 @@ class Handler(SimpleHTTPRequestHandler):
         if p.get("action") == "check":
             # mirror the worker's fail-open contract; no real lookups locally
             return self._json({"ok": True, "result": "unknown"})
+        if p.get("action") == "waiverinfo":
+            # mock: any well-formed key is an accepted, unsigned applicant
+            k = str(p.get("k") or "")
+            if len(k) == 32 and all(c in "0123456789abcdef" for c in k):
+                return self._json({"ok": True, "name": "Mock Applicant", "signed": False})
+            return self._json({"ok": False, "error": "invalid link"})
         if p.get("action") == "waiver":
+            k = str(p.get("k") or "")
+            if len(k) != 32 or not all(c in "0123456789abcdef" for c in k):
+                return self._json({"ok": False, "error": "This signing link isn’t active."})
             name = str(p.get("name") or "").strip()
             sig = str(p.get("sig") or "")
             if not name:
@@ -178,8 +187,9 @@ class Handler(SimpleHTTPRequestHandler):
         for k in REQUIRED:
             if not str(a.get(k, "")).strip():
                 return self._json({"ok": False, "error": f"Missing required field: {k}"})
-        if not str(a.get("email", "")).strip() and not str(a.get("phone", "")).strip():
-            return self._json({"ok": False, "error": "Missing contact info."})
+        phone_digits = len([c for c in str(a.get("phone", "")) if c.isdigit()])
+        if phone_digits < 10 or phone_digits > 15:
+            return self._json({"ok": False, "error": "Enter a real phone number."})
         try:
             age = int(str(a.get("age", "")).strip())
         except ValueError:

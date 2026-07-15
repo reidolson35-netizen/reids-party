@@ -213,7 +213,7 @@ var CFG = window.PARTY_CONFIG || {};
 var LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
 
-/* One question per screen; contact (phone or email) comes last. */
+/* One question per screen; contact (phone only - acceptance goes by text) comes last. */
 var QUESTIONS = [
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
   {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'yourhandle'},
@@ -222,7 +222,7 @@ var QUESTIONS = [
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true, files:true, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
   {id:'want',      type:'textarea', label:'What do you want?', helper:'Answer this however you’d like.', req:true},
-  {id:'contact',   type:'contact',  label:'How should we contact you?', helper:'Phone number or email, whichever one you won’t miss.', req:true, ph:'Phone or email'}
+  {id:'contact',   type:'contact',  label:'What’s your phone number?', helper:'If you’re approved, you’ll hear from us by text.', req:true, ph:'Phone number'}
 ];
 var TOTAL = QUESTIONS.length;
 
@@ -263,9 +263,10 @@ function validate(q){
   switch(q.type){
     case 'contact':
       if (!v) return {ok:false, msg:''};
-      if (v.indexOf('@') >= 0)
-        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? {ok:true} : {ok:false, msg:'That email doesn’t look right.'};
-      return ((v.match(/\d/g)||[]).length >= 7) ? {ok:true} : {ok:false, msg:'That phone number looks short.'};
+      if (v.indexOf('@') >= 0) return {ok:false, msg:'Phone number, please - acceptances go out by text.'};
+      var digits = (v.match(/\d/g)||[]).length;
+      if (digits < 10) return {ok:false, msg:'That phone number looks short.'};
+      return (digits <= 15) ? {ok:true} : {ok:false, msg:'That phone number looks long.'};
     case 'age':
       if (!v) return {ok:false, msg:''};
       var n = parseInt(v,10);
@@ -342,8 +343,8 @@ function buildQuestion(q, idx){
     input = el('input','inp');
     input.type = (q.type === 'age') ? 'number' : 'text';
     if (q.type === 'age'){ input.min = 1; input.max = 120; input.inputMode = 'numeric'; }
-    if (q.type === 'contact'){ input.autocapitalize = 'off'; }
-    input.autocomplete = (q.id === 'name') ? 'name' : 'off';
+    if (q.type === 'contact'){ input.autocapitalize = 'off'; input.type = 'tel'; input.inputMode = 'tel'; }
+    input.autocomplete = (q.id === 'name') ? 'name' : (q.type === 'contact' ? 'tel' : 'off');
   }
   if (q.ph && input.tagName !== 'DIV') input.placeholder = q.ph;
   inputWrap.appendChild(input);
@@ -776,11 +777,10 @@ function submit(){
     fbclid: (function(){ try{ return (localStorage.getItem('rp_fbclid')||'').slice(0,200); }catch(e){ return ''; } })(),
     ts: new Date().toISOString(),
     answers: (function(){
-      /* one contact question feeds the existing email/phone columns */
+      /* phone-only now; the email column stays for legacy rows */
       var contact = String(answers.contact||'').trim();
-      var isEmail = contact.indexOf('@') >= 0;
       return {
-        email: isEmail ? contact : '',
+        email: '',
         name: String(answers.name||'').trim(),
         socials: String(answers.socials||'').trim(),
         age: String(answers.age||'').trim(),
@@ -788,7 +788,7 @@ function submit(){
         working: String(answers.working||'').trim(),
         contrarian: String(answers.contrarian||'').trim(),
         want: String(answers.want||'').trim(),
-        phone: isEmail ? '' : contact
+        phone: contact
       };
     })(),
     images: fileStore.images.map(function(f){ return {name:f.name, type:f.type, data:f.data}; })

@@ -20,9 +20,23 @@
  */
 
 var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
-/* email/phone left out: the form asks one "how should we contact you?"
-   question and fills whichever fits - at least one must be present */
+/* email left out on purpose: the form is phone-only now (acceptance goes out
+   by text - "nobody checks their email"); legacy rows still carry emails */
 var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'want'];
+
+/* Reid's copy (straight apostrophes on purpose: keeps SMS in GSM-7, fewer segments) */
+function waiverMsg(link) {
+  return "You've been accepted.\n\n" +
+    "We reviewed your application for Reid's Parties, and we think you're a great fit.\n\n" +
+    'Last thing before we see you on September 5th, at 7 pm: Please fill out this Expectation waiver. ' + link + '\n\n' +
+    'This is to keep our parties friendly, well intended, and safe.';
+}
+function waiverThanksMsg() {
+  return "Thanks! We got your waiver. We'll send you the address on September 4th. It will be in Central Austin.";
+}
+/* wait this long after approval before texting (grace window for misclicks) */
+var NOTIFY_DELAY_SECS = 120;
+var NOTIFY_MAX_TRIES = 5;
 var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 /* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
    cap counts only ACCEPTED submissions; raw attempts get a loose flood guard. */
@@ -117,8 +131,29 @@ function rowOut(r, origin) {
     email: r.email, phone: r.phone, socials: r.socials,
     why: r.why, working: r.working, contrarian: r.contrarian, want: r.want || '',
     ref: r.ref || '', soc_check: r.soc_check || '',
+    sign_key: r.sign_key || '', notified: r.notified || 0,
     images: imgs.map(abs), id_images: ids.map(abs)
   };
+}
+
+/* US-first E.164: 10 digits get +1; anything else must already carry a country code */
+function e164(phone) {
+  var d = String(phone || '').replace(/\D/g, '');
+  if (d.length === 10) return '+1' + d;
+  if (d.length >= 11 && d.length <= 15) return '+' + d;
+  return '';
+}
+
+async function sendSms(env, to, body) {
+  var r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + env.TWILIO_SID + '/Messages.json', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + btoa(env.TWILIO_SID + ':' + env.TWILIO_TOKEN),
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ To: to, From: env.TWILIO_FROM, Body: body }).toString()
+  });
+  return r.status >= 200 && r.status < 300;
 }
 
 async function listAll(env, origin) {
@@ -142,8 +177,9 @@ async function submit(env, ctx, p, rawBody, ip) {
       return json({ ok: false, error: 'Missing required field: ' + REQUIRED[i] });
     }
   }
-  if (!String(a.email || '').trim() && !String(a.phone || '').trim()) {
-    return json({ ok: false, error: 'Missing contact info.' });
+  var phoneDigits = String(a.phone || '').replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+    return json({ ok: false, error: 'Enter a real phone number.' });
   }
   var age = parseInt(a.age, 10);
   if (!(age >= 1 && age <= 120)) return json({ ok: false, error: 'Enter your real age.' });
@@ -270,6 +306,44 @@ export default {
       /* never leak an HTML 1101 page - the frontend expects JSON */
       return json({ ok: false, error: 'server error' }, 500);
     }
+  },
+
+  /* cron (every minute): text the waiver link to anyone approved more than
+     NOTIFY_DELAY_SECS ago. Inert until the TWILIO_* secrets exist - approvals
+     queue up (notified=0) and all go out once Twilio is configured.
+     notified: 0=pending 1=texted 2=unreachable(no usable phone) 3=gave up */
+  async scheduled(event, env, ctx) {
+    try {
+      if (!env.TWILIO_SID || !env.TWILIO_TOKEN || !env.TWILIO_FROM) return;
+      var now = Math.floor(Date.now() / 1000);
+      var due = await env.DB.prepare(
+        "SELECT n,name,phone,sign_key FROM applications WHERE status='ACCEPTED' AND IFNULL(notified,0)=0 " +
+        'AND IFNULL(accepted_ts,0)>0 AND accepted_ts<=? AND IFNULL(notify_tries,0)<? LIMIT 10'
+      ).bind(now - NOTIFY_DELAY_SECS, NOTIFY_MAX_TRIES).all();
+      var rows = due.results || [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var to = e164(r.phone);
+        if (!to || !r.sign_key) {
+          await env.DB.prepare('UPDATE applications SET notified=2 WHERE n=?').bind(r.n).run();
+          continue;
+        }
+        var sent = false;
+        try { sent = await sendSms(env, to, waiverMsg('https://reidsparty.com/waiver.html?k=' + r.sign_key)); } catch (e) {}
+        if (sent) {
+          await env.DB.prepare('UPDATE applications SET notified=1, notified_ts=? WHERE n=?')
+            .bind(new Date().toISOString(), r.n).run();
+        } else {
+          /* transient failures retry next minute, bounded by NOTIFY_MAX_TRIES */
+          var tries = await env.DB.prepare(
+            'UPDATE applications SET notify_tries=IFNULL(notify_tries,0)+1 WHERE n=? RETURNING notify_tries'
+          ).bind(r.n).first();
+          if (tries && tries.notify_tries >= NOTIFY_MAX_TRIES) {
+            await env.DB.prepare('UPDATE applications SET notified=3 WHERE n=?').bind(r.n).run();
+          }
+        }
+      }
+    } catch (e) {}
   }
 };
 
@@ -340,12 +414,31 @@ async function handle(request, env, ctx) {
       return json({ ok: true, result: await checkSocial(p.url) });
     }
 
-    /* ---- public signed waiver (waiver.html) ---- */
+    /* ---- who does this signing link belong to (waiver.html?k=...) ---- */
+    if (p.action === 'waiverinfo') {
+      var vtries = await bump(env, 'try:' + ip, 3600);
+      if (vtries > ATTEMPTS_PER_IP_HOUR) return json({ ok: false, error: 'invalid link' });
+      var vk = String(p.k || '');
+      if (!/^[0-9a-f]{32}$/.test(vk)) return json({ ok: false, error: 'invalid link' });
+      var vapp = await env.DB.prepare("SELECT n,name FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(vk).first();
+      if (!vapp) return json({ ok: false, error: 'invalid link' });
+      var vsigned = await env.DB.prepare('SELECT n FROM waivers WHERE app_n=?').bind(vapp.n).first();
+      return json({ ok: true, name: vapp.name, signed: !!vsigned });
+    }
+
+    /* ---- signed waiver: ONLY through a private accepted-applicant link.
+       The public waiver.html link on the site is read-only by design. ---- */
     if (p.action === 'waiver') {
       var wtries = await bump(env, 'try:' + ip, 3600);
       if (wtries > ATTEMPTS_PER_IP_HOUR) {
         return json({ ok: false, error: 'Too many attempts from your network. Try again in an hour.' });
       }
+      var wk = String(p.k || '');
+      if (!/^[0-9a-f]{32}$/.test(wk)) return json({ ok: false, error: 'This signing link isn’t active.' });
+      var wapp = await env.DB.prepare("SELECT n,phone FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(wk).first();
+      if (!wapp) return json({ ok: false, error: 'This signing link isn’t active.' });
+      var already = await env.DB.prepare('SELECT n FROM waivers WHERE app_n=?').bind(wapp.n).first();
+      if (already) return json({ ok: false, error: 'Already signed - you’re all set.' });
       var wname = String(p.name || '').trim().slice(0, 120);
       var wsig = String(p.sig || '');
       if (!wname) return json({ ok: false, error: 'Missing name.' });
@@ -356,11 +449,16 @@ async function handle(request, env, ctx) {
       if (p.agreed !== true) return json({ ok: false, error: 'You have to agree to the waiver.' });
       /* ip+ua stored on purpose: they are the evidence this signature is real */
       var wrow = await env.DB.prepare(
-        'INSERT INTO waivers(ts,name,sig,ip,ua) VALUES(?,?,?,?,?) RETURNING n'
+        'INSERT INTO waivers(ts,name,sig,ip,ua,app_n) VALUES(?,?,?,?,?,?) RETURNING n'
       ).bind(
         String(p.ts || new Date().toISOString()).slice(0, 40), wname, wsig,
-        ip, String(p.ua || '').slice(0, 400)
+        ip, String(p.ua || '').slice(0, 400), wapp.n
       ).first();
+      /* confirmation text, right away (post-response; a Twilio blip never sinks the waiver) */
+      if (env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) {
+        var wto = e164(wapp.phone);
+        if (wto) ctx.waitUntil(sendSms(env, wto, waiverThanksMsg()).catch(function () {}));
+      }
       return json({ ok: true, n: wrow.n });
     }
 
@@ -375,12 +473,23 @@ async function handle(request, env, ctx) {
         if (STATUSES.indexOf(p.status) < 0) return json({ ok: false, error: 'bad status' });
         var sn = parseInt(p.n, 10);
         if (!sn) return json({ ok: false, error: 'applicant not found' });
+        if (p.status === 'ACCEPTED') {
+          /* stamp approval: mint the private signing link (kept across
+             re-approvals) and start the notify grace clock. notified stays
+             as-is so flapping the status never re-texts anyone. */
+          var cur = await env.DB.prepare('SELECT sign_key FROM applications WHERE n=?').bind(sn).first();
+          if (!cur) return json({ ok: false, error: 'applicant not found' });
+          var skey = cur.sign_key || hex(crypto.getRandomValues(new Uint8Array(16)));
+          await env.DB.prepare("UPDATE applications SET status='ACCEPTED', sign_key=?, accepted_ts=? WHERE n=?")
+            .bind(skey, Math.floor(Date.now() / 1000), sn).run();
+          return json({ ok: true });
+        }
         var u = await env.DB.prepare('UPDATE applications SET status=? WHERE n=?').bind(p.status, sn).run();
         return u.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
       }
 
       if (p.action === 'waivers') {
-        var wres = await env.DB.prepare('SELECT n,ts,name,sig,ip,ua FROM waivers ORDER BY n DESC').all();
+        var wres = await env.DB.prepare('SELECT n,ts,name,sig,ip,ua,app_n FROM waivers ORDER BY n DESC').all();
         return json({ ok: true, rows: wres.results || [] });
       }
 

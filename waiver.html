@@ -136,6 +136,12 @@ var $ = function(id){ return document.getElementById(id); };
 
 $('today').textContent = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
 
+/* Signing works ONLY through the private link texted to accepted applicants
+   (?k=...). The bare page linked from the site is a read-only copy - and the
+   worker enforces the same rule, so hiding the form here is just honesty. */
+var K = '';
+try { K = new URLSearchParams(location.search).get('k') || ''; }catch(e){}
+
 /* ---- signature pad (vanilla pointer events) ---- */
 var pad = $('pad'), ctx = pad.getContext('2d');
 var points = 0, drawing = false;
@@ -208,7 +214,7 @@ $('sendBtn').addEventListener('click', function(){
   fetch(EP, {
     method: 'POST',
     body: JSON.stringify({
-      action: 'waiver', name: name, sig: sigPng(), agreed: true,
+      action: 'waiver', k: K, name: name, sig: sigPng(), agreed: true,
       ts: new Date().toISOString(), ua: navigator.userAgent
     })
   })
@@ -222,6 +228,23 @@ $('sendBtn').addEventListener('click', function(){
     btn.disabled = false; btn.textContent = 'Agree & submit';
   });
 });
+
+/* gate runs last so the wiring above always finds its elements */
+function readOnly(){
+  $('esign').innerHTML = '<p class="agreeline">Signing is by invitation: if your application is approved, we text you a private signing link.</p>';
+}
+if (!/^[0-9a-f]{32}$/.test(K)){
+  readOnly();
+} else {
+  fetch(EP, {method:'POST', body: JSON.stringify({action:'waiverinfo', k: K})})
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (!res.ok) return readOnly();
+      if (res.signed){ $('esign').innerHTML = '<p class="done">Already signed. You&rsquo;re all set. See you at the party.</p>'; return; }
+      if (res.name && !$('wname').value) $('wname').value = res.name;
+    })
+    .catch(function(){ /* leave the form up; the worker still gates submits */ });
+}
 })();
 </script>
 </body>

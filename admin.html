@@ -329,6 +329,7 @@ function render(){
       qa('Contrarian take', esc(r.contrarian)) +
       (r.want ? qa('What they want', esc(r.want)) : '') +
       (r.ref ? qa('Found us via', esc(fmtRef(r.ref))) : '') +
+      (r.sign_key ? qa('Waiver link', '<a href="waiver.html?k=' + esc(r.sign_key) + '" target="_blank" rel="noopener">waiver.html?k=' + esc(r.sign_key).slice(0,8) + '&hellip;</a>' + (r.notified === 1 ? ' <span style="color:var(--ok);font-weight:700;font-size:12px">texted</span>' : '')) : '') +
       (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
       (r.id_images && r.id_images.length ? qa('ID (legacy uploads)', imgBlock(r.id_images, true)) : '') +
       '<div class="ts">' + fmtTs(r.ts) + '</div>';

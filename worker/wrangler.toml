@@ -4,6 +4,11 @@ compatibility_date = "2026-07-01"
 account_id = "f55e7db86bfb513ac2a7cd178b9887a0"
 workers_dev = true
 
+# acceptance texts: scan for due approvals once a minute (inert until the
+# TWILIO_SID / TWILIO_TOKEN / TWILIO_FROM secrets are set)
+[triggers]
+crons = ["* * * * *"]
+
 [vars]
 # Legacy Apps Script backend - best-effort mirror (Google Sheet + notify email).
 # Submissions never depend on it; when its weekly grant lapses, only the mirror pauses.
