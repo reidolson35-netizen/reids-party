@@ -287,10 +287,19 @@ function fmtTs(ts){
   return d.toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
 }
 
+/* canonical source name so typing "tiktok" / "meta" / "qr" in search filters by origin */
+function srcName(r){
+  var v = String(r.ref||'').toLowerCase();
+  if (/tiktok|src=tt\b/.test(v)) return 'tiktok';
+  if (/instagram|facebook|fb\.|src=ig\b|src=fb\b|src=meta\b/.test(v)) return 'meta instagram facebook';
+  if (/src=qr\b/.test(v)) return 'qr flier';
+  return '';
+}
+
 function matches(r){
   if (activeTab !== 'ALL' && (r.status||'PENDING') !== activeTab) return false;
   if (!query) return true;
-  var hay = [r.name, r.email, r.phone, r.socials, r.why, r.working, r.contrarian, r.want, r.age].join(' ').toLowerCase();
+  var hay = [r.name, r.email, r.phone, r.socials, r.why, r.working, r.contrarian, r.want, r.age, r.ref, srcName(r)].join(' ').toLowerCase();
   return hay.indexOf(query) >= 0;
 }
 
