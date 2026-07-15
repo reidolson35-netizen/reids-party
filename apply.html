@@ -32,11 +32,13 @@ try{
   /* Meta click id (same deal: server-side attribution only) */
   var _fb=new URLSearchParams(location.search).get('fbclid');
   if(_fb&&!localStorage.getItem('rp_fbclid'))localStorage.setItem('rp_fbclid',_fb);
-  /* visit counter: one pixel per browser session; server stores day x page x source only */
+  /* visit counter: one pixel per browser session; server stores day x page x source only.
+     #a/#b = hero-CTA A/B variant, assigned on the home page only */
   if(!sessionStorage.getItem('rp_v')){
     sessionStorage.setItem('rp_v','1');
     var _u=new URLSearchParams(location.search).get('utm_source');
-    new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent(location.pathname)+'&r='+encodeURIComponent(_q||_u||_r);
+    var _ab=localStorage.getItem('rp_ab');
+    new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent(location.pathname+(_ab==='a'||_ab==='b'?'#'+_ab:''))+'&r='+encodeURIComponent(_q||_u||_r);
   }
 }catch(e){}
 </script>
@@ -801,6 +803,12 @@ function submit(){
       submitting = false;
       if (res && res.ok){
         clearDraft();
+        /* conversion ping -> hits counter: page 'applied' (+#a/#b hero variant), source = first touch */
+        try{
+          var _ab=localStorage.getItem('rp_ab');
+          var _src=(localStorage.getItem('rp_src')||'').split(' · ')[0].replace(/^src=/,'');
+          new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent('applied'+(_ab==='a'||_ab==='b'?'#'+_ab:''))+'&r='+encodeURIComponent(_src);
+        }catch(e){}
         show(TOTAL + 1);
         /* success screen is the only state marked in the URL (ad tools can match on it) */
         try{ history.replaceState(null, '', '?share'); }catch(e){}

@@ -32,11 +32,15 @@ try{
   /* Meta click id (same deal: server-side attribution only) */
   var _fb=new URLSearchParams(location.search).get('fbclid');
   if(_fb&&!localStorage.getItem('rp_fbclid'))localStorage.setItem('rp_fbclid',_fb);
+  /* A/B hero-CTA copy test: sticky 50/50 per device; b swaps the .next line via CSS */
+  var _ab=localStorage.getItem('rp_ab');
+  if(_ab!=='a'&&_ab!=='b'){_ab=Math.random()<.5?'a':'b';localStorage.setItem('rp_ab',_ab);}
+  if(_ab==='b')document.documentElement.className+=' ab-b';
   /* visit counter: one pixel per browser session; server stores day x page x source only */
   if(!sessionStorage.getItem('rp_v')){
     sessionStorage.setItem('rp_v','1');
     var _u=new URLSearchParams(location.search).get('utm_source');
-    new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent(location.pathname)+'&r='+encodeURIComponent(_q||_u||_r);
+    new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent(location.pathname+'#'+_ab)+'&r='+encodeURIComponent(_q||_u||_r);
   }
 }catch(e){}
 </script>
@@ -184,6 +188,10 @@ main{position:relative}
 }
 .tag.sub{font-weight:400;font-size:clamp(14px,2vw,16px);color:var(--rose-head);margin:0 0 34px}
 .next{font-family:var(--fsans);font-weight:600;font-size:clamp(15px,2.2vw,18px);line-height:1.4;color:var(--rose);margin:0}
+/* A/B test: html.ab-b (set in head, pre-paint) picks which CTA line shows */
+.cta-b{display:none}
+html.ab-b .cta-a{display:none}
+html.ab-b .cta-b{display:inline}
 .cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:clamp(30px,5.5vh,50px)}
 .cta .btn{font-size:19px;padding:18px 40px}
 
@@ -231,7 +239,7 @@ main{position:relative}
       <h1 class="logo">Reid&rsquo;s&nbsp;Parties</h1>
       <p class="tag">Dating apps <b>suck</b> almost as much as the <b>Austin</b> dating scene.</p>
       <p class="tag sub">So we&rsquo;re throwing application-based, mostly-<b>singles parties</b> for genuinely interesting people.</p>
-      <p class="next">We&rsquo;re accepting applications for our September 5th party for a limited time.</p>
+      <p class="next"><span class="cta-a">We&rsquo;re accepting applications for our September 5th party for a limited time.</span><span class="cta-b">Next party: September 5th. Spots are limited.</span></p>
       <div class="cta">
         <a class="btn" href="apply.html">Apply now</a>
       </div>
