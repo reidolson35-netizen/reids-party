@@ -11,77 +11,217 @@
 :root{
   --bg:#fbf4c7;
   --rose-bold:#e4726a;
-  --ink:#4a3b35;
+  --btn:#f7cbc6;
+  --ink:#3d332e;
   --fdisp:"quiche-display","Fraunces",Georgia,serif;
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
+  /* agreements read like agreements */
+  --fdoc:"Times New Roman",Times,Georgia,serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg);
   color:var(--ink);
-  font-family:var(--fsans);
-  font-size:16px;line-height:1.5;
+  font-family:var(--fdoc);
+  font-size:17px;line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
 main{max-width:720px;margin:0 auto;padding:48px 24px 64px}
 h1{
   font-family:var(--fdisp);font-weight:700;
   font-size:clamp(30px,5vw,40px);line-height:1.05;
-  color:var(--rose-bold);margin:0 0 4px;
+  color:var(--rose-bold);margin:0 0 6px;
 }
-.sub{font-weight:600;color:var(--rose-bold);margin:0 0 28px}
+.note{font-family:var(--fsans);font-weight:600;font-size:15px;color:var(--rose-bold);margin:0 0 2px}
+.sub{font-family:var(--fsans);font-weight:600;font-size:14px;color:var(--rose-bold);margin:0 0 28px}
 p{margin:0 0 14px}
-ol{margin:0 0 14px;padding-left:22px}
+ol{margin:0 0 14px;padding-left:24px}
 ol li{margin:0 0 12px}
-li b,.intro b{color:inherit}
-.blank{
-  display:inline-block;min-width:280px;
+input.blank{
+  font-family:var(--fdoc);font-size:17px;color:var(--ink);
+  background:transparent;border:none;outline:none;
   border-bottom:1.5px solid var(--ink);
+  min-width:min(280px,60vw);padding:2px 6px;
 }
+input.blank:focus{border-bottom-color:var(--rose-bold)}
 .release{font-weight:700}
-.sig{display:flex;gap:28px;flex-wrap:wrap;margin-top:34px}
-.sig div{flex:1;min-width:150px}
-.sig .line{border-bottom:1.5px solid var(--ink);height:34px}
-.sig .lbl{font-size:13px;font-weight:600;margin-top:5px}
-.foot{margin-top:36px;font-size:13px;color:var(--rose-bold);font-weight:600}
+.esign{margin-top:30px}
+.padHead{display:flex;align-items:baseline;justify-content:space-between;font-family:var(--fsans);font-weight:600;font-size:14px;color:var(--rose-bold)}
+.padHead button{
+  font-family:var(--fsans);font-weight:700;font-size:13px;
+  background:none;border:none;color:var(--rose-bold);
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px;
+}
+#pad{
+  display:block;width:100%;height:170px;margin-top:6px;
+  background:rgba(255,255,255,.55);border-radius:14px;
+  touch-action:none;cursor:crosshair;
+}
+.dateline{margin-top:14px}
+.agreeline{font-size:15px;color:var(--ink);margin-top:16px}
+.btn{
+  display:inline-block;margin-top:14px;
+  font-family:var(--fsans);font-weight:700;font-size:17px;line-height:1;
+  background:var(--btn);color:var(--rose-bold);
+  border:none;border-radius:999px;padding:16px 36px;cursor:pointer;
+}
+.btn:disabled{opacity:.55;cursor:default}
+.err{font-family:var(--fsans);font-weight:600;color:#b3402f;margin-top:12px;min-height:1.2em}
+.done{font-size:19px;margin-top:26px}
+.sig-print{display:none}
+.foot{margin-top:36px;font-family:var(--fsans);font-size:13px;color:var(--rose-bold);font-weight:600}
 @media print{
   @page{size:letter;margin:0.55in}
   body{background:#fff;color:#000;font-size:10.5pt;line-height:1.35}
   main{max-width:none;margin:0;padding:0}
   h1{color:#000;font-size:20pt}
-  .sub,.foot{color:#000}
-  .blank,.sig .line{border-color:#000}
+  .note,.sub,.foot{color:#000}
+  input.blank{border-bottom-color:#000;color:#000}
   ol li{margin-bottom:8pt}
-  .sig{page-break-inside:avoid}
+  .esign{display:none}
+  .sig-print{display:flex;gap:28px;margin-top:30pt;page-break-inside:avoid}
+  .sig-print div{flex:1}
+  .sig-print .line{border-bottom:1.5px solid #000;height:30pt}
+  .sig-print .lbl{font-size:9pt;margin-top:4pt}
 }
 </style>
 </head>
 <body>
 <main>
   <h1>Expectation Waiver</h1>
+  <p class="note">(you only have to fill this out if you get approved)</p>
   <p class="sub">Reid&rsquo;s Parties - reidsparty.com</p>
 
-  <p class="intro">I, <span class="blank">&nbsp;</span> (print your name), am attending an event organized through reidsparty.com (the &ldquo;Event&rdquo;). &ldquo;Organizers&rdquo; means the Event&rsquo;s organizers, hosts, staff, and volunteers. In exchange for being allowed to attend, I agree to the following:</p>
+  <p class="intro">I, <input class="blank" id="wname" autocomplete="name" aria-label="Print your name"> (print your name), am attending an event organized through reidsparty.com (the &ldquo;Event&rdquo;). &ldquo;Organizers&rdquo; means the Event&rsquo;s organizers, hosts, staff, and volunteers. In exchange for being allowed to attend, I agree to the following:</p>
 
   <ol>
-    <li><b>Nobody owes me anything.</b> Being at this Event does not entitle me to anyone&rsquo;s attention, interest, affection, or time.</li>
-    <li><b>Anyone can tell me no.</b> Anyone can decline my company, for any reason or no reason, at any time. Nobody has to be into me. &ldquo;No&rdquo; is a complete answer, and I will accept it the first time, without argument, pressure, guilt-tripping, or retaliation.</li>
+    <li>Being at this Event does not entitle me to anyone&rsquo;s attention, interest, affection, or time.</li>
+    <li>Anyone can decline my company, for any reason or no reason, at any time. Nobody has to be into me. &ldquo;No&rdquo; is a complete answer, and I will accept it the first time, without argument, pressure, guilt-tripping, or retaliation.</li>
     <li><b>I will not harass anyone.</b> No unwanted touching, no following or cornering, no repeated advances after a no, no sexual comments, no pressure of any kind. If someone seems uncomfortable around me, I will give them space.</li>
     <li><b>I am not exempt from the consequences of my actions.</b> If I behave inappropriately, the Organizers may remove me from the Event and ban me from future events, immediately and at their sole discretion, and I will leave when asked. If my conduct may be unlawful, it may be reported to the police. My behavior is my responsibility alone.</li>
-    <li><b>If someone acts badly, that is on them.</b> The Organizers screen applications, interview attendees, and will do everything reasonably in their power to keep this Event safe and comfortable, including removing anyone who behaves inappropriately. Even so, I understand that no screening is perfect and that the Organizers cannot control or guarantee any person&rsquo;s behavior. If another attendee harms me, harasses me, or makes me uncomfortable, responsibility for that conduct lies entirely with that person, not the Organizers. <span class="release">TO THE FULLEST EXTENT PERMITTED BY LAW, I RELEASE AND AGREE NOT TO SUE THE ORGANIZERS FOR ANY CLAIM ARISING FROM THE CONDUCT OF ANOTHER ATTENDEE OR FROM THE ORDINARY RISKS OF ATTENDING A SOCIAL EVENT. THIS RELEASE DOES NOT APPLY TO HARM CAUSED BY AN ORGANIZER&rsquo;S OWN GROSS NEGLIGENCE OR WILLFUL MISCONDUCT.</span></li>
+    <li><b>I can be removed at any time.</b> I understand that I can be removed from the Event by the Organizers at any time, with no notice, for any lawful reason or for no reason at all, at their sole discretion, and that no explanation is owed to me. Attending is a revocable privilege, not a right: the Event is private, my invitation is a license the Organizers may revoke at any moment, and if I am asked to leave I will do so immediately and calmly. I understand that remaining after being asked to leave would make me a trespasser under Texas law.</li>
+    <li>I understand that the Organizers screen applications, interview attendees, and will do everything reasonably in their power to keep this Event safe and comfortable, including removing anyone who behaves inappropriately. Even so, no screening is perfect, and the Organizers cannot control or guarantee any person&rsquo;s behavior. If another attendee harms me, harasses me, or makes me uncomfortable, responsibility for that conduct lies entirely with that person, not the Organizers. <span class="release">TO THE FULLEST EXTENT PERMITTED BY LAW, I RELEASE AND AGREE NOT TO SUE THE ORGANIZERS FOR ANY CLAIM ARISING FROM THE CONDUCT OF ANOTHER ATTENDEE OR FROM THE ORDINARY RISKS OF ATTENDING A SOCIAL EVENT. THIS RELEASE DOES NOT APPLY TO HARM CAUSED BY AN ORGANIZER&rsquo;S OWN GROSS NEGLIGENCE OR WILLFUL MISCONDUCT.</span></li>
     <li><b>I will speak up right away.</b> If anything or anyone at the Event makes me uncomfortable, I will tell a staff member immediately so they can handle it.</li>
     <li><b>Alcohol.</b> I will not consume alcohol at the Event unless I am 21 or older, and I will not give alcohol to anyone under 21.</li>
-    <li><b>The fine print, plainly.</b> I am at least 18 years old, and my application was truthful. This is the entire agreement between me and the Organizers on these topics. Texas law governs it, and if any part of it is found unenforceable, the rest still applies. I have read this whole page, I understand it, and I am signing it freely.</li>
+    <li>I am at least 18 years old, and my application was truthful. This is the entire agreement between me and the Organizers on these topics. Texas law governs it, and if any part of it is found unenforceable, the rest still applies. I have read this whole page, I understand it, and I am signing it freely.</li>
   </ol>
 
-  <div class="sig">
+  <div class="esign" id="esign">
+    <div class="padHead"><span>Sign here</span><button type="button" id="clearBtn">Clear</button></div>
+    <canvas id="pad" aria-label="Signature pad"></canvas>
+    <p class="dateline">Date: <span id="today"></span></p>
+    <p class="agreeline">By signing and pressing &ldquo;Agree &amp; submit,&rdquo; I agree to everything above and to signing this agreement electronically.</p>
+    <button type="button" class="btn" id="sendBtn">Agree &amp; submit</button>
+    <p class="err" id="err"></p>
+  </div>
+
+  <!-- paper fallback: printing this page yields a blank sign-at-the-door copy -->
+  <div class="sig-print">
     <div><div class="line"></div><div class="lbl">Print name</div></div>
     <div><div class="line"></div><div class="lbl">Signature</div></div>
-    <div style="flex:0 0 120px"><div class="line"></div><div class="lbl">Date</div></div>
+    <div style="flex:0 0 90pt"><div class="line"></div><div class="lbl">Date</div></div>
   </div>
 
   <p class="foot">reidsparty.com - v. July 2026</p>
 </main>
+
+<script src="config.js"></script>
+<script>
+(function(){
+'use strict';
+var EP = (window.PARTY_CONFIG && window.PARTY_CONFIG.ENDPOINT) || '/exec';
+var $ = function(id){ return document.getElementById(id); };
+
+$('today').textContent = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+
+/* ---- signature pad (vanilla pointer events) ---- */
+var pad = $('pad'), ctx = pad.getContext('2d');
+var points = 0, drawing = false;
+
+function sizePad(){
+  var r = pad.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  pad.width = Math.round(r.width * d);
+  pad.height = Math.round(r.height * d);
+  ctx.scale(d, d);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#2b2320';
+  points = 0; /* resize clears the canvas, so the signature restarts */
+}
+sizePad();
+window.addEventListener('resize', sizePad);
+
+function xy(e){
+  var r = pad.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+pad.addEventListener('pointerdown', function(e){
+  e.preventDefault();
+  pad.setPointerCapture(e.pointerId);
+  drawing = true;
+  var p = xy(e);
+  ctx.beginPath();
+  ctx.moveTo(p[0], p[1]);
+  ctx.lineTo(p[0] + 0.01, p[1]); /* a tap still leaves a dot */
+  ctx.stroke();
+  points++;
+});
+pad.addEventListener('pointermove', function(e){
+  if (!drawing) return;
+  var p = xy(e);
+  ctx.lineTo(p[0], p[1]);
+  ctx.stroke();
+  points++;
+});
+['pointerup','pointercancel'].forEach(function(ev){
+  pad.addEventListener(ev, function(){ drawing = false; });
+});
+$('clearBtn').addEventListener('click', function(){
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0, 0, pad.width, pad.height);
+  ctx.restore();
+  points = 0;
+});
+
+/* export on white so the signature reads anywhere */
+function sigPng(){
+  var out = document.createElement('canvas');
+  out.width = pad.width; out.height = pad.height;
+  var o = out.getContext('2d');
+  o.fillStyle = '#fff';
+  o.fillRect(0, 0, out.width, out.height);
+  o.drawImage(pad, 0, 0);
+  return out.toDataURL('image/png');
+}
+
+/* ---- submit ---- */
+$('sendBtn').addEventListener('click', function(){
+  var name = $('wname').value.trim();
+  $('err').textContent = '';
+  if (!name){ $('err').textContent = 'Print your name at the top first.'; $('wname').focus(); return; }
+  if (points < 8){ $('err').textContent = 'Add your signature first.'; return; }
+  var btn = $('sendBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  fetch(EP, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'waiver', name: name, sig: sigPng(), agreed: true,
+      ts: new Date().toISOString(), ua: navigator.userAgent
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if (!res.ok) throw new Error(res.error || 'Submission failed.');
+    $('esign').innerHTML = '<p class="done">Thanks, ' + name.replace(/[<>&]/g, '') + '. You&rsquo;re all set. See you at the party.</p>';
+  })
+  .catch(function(e){
+    $('err').textContent = (e && e.message) || 'Network error. Please try again.';
+    btn.disabled = false; btn.textContent = 'Agree & submit';
+  });
+});
+})();
+</script>
 </body>
 </html>

@@ -152,6 +152,8 @@ select.status.REJECTED{border-color:var(--bad);color:var(--bad)}
     <div id="msg"></div>
     <div id="cards"></div>
     <div id="empty" class="panel" style="display:none">No applications yet</div>
+    <div class="statRow" style="margin-top:38px"><div class="statNum" id="wtotal">0</div><div class="statLbl">Signed waivers</div></div>
+    <div id="waivers"></div>
   </section>
 
 </div>
@@ -169,6 +171,7 @@ var TABS = ['ALL'].concat(STATUSES);
 var token = '';
 try{ token = localStorage.getItem('rp_admin_token') || ''; }catch(e){}
 var rows = [];
+var wrows = [];
 var activeTab = 'ALL';
 var query = '';
 
@@ -206,8 +209,16 @@ function load(){
       rows = (res.rows || []).slice().sort(function(a,b){ return (b.n||0)-(a.n||0); });
       $('msg').textContent = '';
       render();
+      loadWaivers();
     })
     .catch(function(){ $('msg').textContent = 'Network error - pull to refresh / tap REFRESH.'; });
+}
+
+function loadWaivers(){
+  fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'waivers', token: token})})
+    .then(function(r){ return r.json(); })
+    .then(function(res){ if (res.ok){ wrows = res.rows || []; renderWaivers(); } })
+    .catch(function(){});
 }
 
 /* ---------- render ---------- */
@@ -354,6 +365,36 @@ function render(){
           }
         })
         .catch(function(){ del.disabled = false; $('msg').textContent = 'Network error - not deleted.'; });
+    });
+    c.appendChild(card);
+  });
+}
+
+function renderWaivers(){
+  $('wtotal').textContent = wrows.length;
+  var c = $('waivers');
+  c.innerHTML = '';
+  wrows.forEach(function(r){
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<div class="cardHead">' +
+        '<span class="cnum">№ ' + pad(r.n||0) + '</span>' +
+        '<span class="cname">' + esc(r.name) + '</span>' +
+        '<span class="grow"></span>' +
+        '<button class="del" type="button">Delete</button>' +
+      '</div>' +
+      '<img src="' + esc(r.sig) + '" alt="signature" style="display:block;background:#fff;border-radius:12px;max-width:100%;max-height:96px;margin-top:10px">' +
+      '<div class="ts">' + fmtTs(r.ts) + (r.ip ? ' &middot; ' + esc(r.ip) : '') + '</div>';
+    card.querySelector('button.del').addEventListener('click', function(){
+      if (!window.confirm('Delete signed waiver № ' + pad(r.n||0) + ' - ' + (r.name||'') + '?\nThis permanently removes it and cannot be undone.')) return;
+      fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'delwaiver', token: token, n: r.n})})
+        .then(function(x){ return x.json(); })
+        .then(function(res){
+          if (res.ok){ wrows = wrows.filter(function(x){ return x.n !== r.n; }); renderWaivers(); }
+          else $('msg').textContent = 'Waiver delete failed: ' + (res.error||'unknown');
+        })
+        .catch(function(){ $('msg').textContent = 'Network error - waiver not deleted.'; });
     });
     c.appendChild(card);
   });

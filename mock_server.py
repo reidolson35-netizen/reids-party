@@ -27,6 +27,7 @@ except OSError:
 
 STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
 REQUIRED = ["name", "socials", "age", "why", "working", "contrarian", "want"]
+WAIVERS = []  # signed waivers, in-memory only (mock restarts start clean)
 
 
 def load_rows():
@@ -108,6 +109,33 @@ class Handler(SimpleHTTPRequestHandler):
         if p.get("action") == "check":
             # mirror the worker's fail-open contract; no real lookups locally
             return self._json({"ok": True, "result": "unknown"})
+        if p.get("action") == "waiver":
+            name = str(p.get("name") or "").strip()
+            sig = str(p.get("sig") or "")
+            if not name:
+                return self._json({"ok": False, "error": "Missing name."})
+            if not sig.startswith("data:image/png;base64,"):
+                return self._json({"ok": False, "error": "Missing signature."})
+            if p.get("agreed") is not True:
+                return self._json({"ok": False, "error": "You have to agree to the waiver."})
+            with LOCK:
+                n = len(WAIVERS) + 1
+                WAIVERS.append({"n": n, "ts": str(p.get("ts") or ""), "name": name,
+                                "sig": sig, "ip": "127.0.0.1", "ua": str(p.get("ua") or "")})
+            return self._json({"ok": True, "n": n})
+        if p.get("action") == "waivers":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            return self._json({"ok": True, "rows": list(reversed(WAIVERS))})
+        if p.get("action") == "delwaiver":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            with LOCK:
+                before = len(WAIVERS)
+                WAIVERS[:] = [w for w in WAIVERS if str(w.get("n")) != str(p.get("n"))]
+            if len(WAIVERS) == before:
+                return self._json({"ok": False, "error": "waiver not found"})
+            return self._json({"ok": True})
         if p.get("action") == "setStatus":
             return self._set_status(p)
         if p.get("action") == "delete":

@@ -340,6 +340,30 @@ async function handle(request, env, ctx) {
       return json({ ok: true, result: await checkSocial(p.url) });
     }
 
+    /* ---- public signed waiver (waiver.html) ---- */
+    if (p.action === 'waiver') {
+      var wtries = await bump(env, 'try:' + ip, 3600);
+      if (wtries > ATTEMPTS_PER_IP_HOUR) {
+        return json({ ok: false, error: 'Too many attempts from your network. Try again in an hour.' });
+      }
+      var wname = String(p.name || '').trim().slice(0, 120);
+      var wsig = String(p.sig || '');
+      if (!wname) return json({ ok: false, error: 'Missing name.' });
+      /* a real signature PNG is a few KB; 400k chars bounds abuse */
+      if (wsig.indexOf('data:image/png;base64,') !== 0 || wsig.length > 400000) {
+        return json({ ok: false, error: 'Missing signature.' });
+      }
+      if (p.agreed !== true) return json({ ok: false, error: 'You have to agree to the waiver.' });
+      /* ip+ua stored on purpose: they are the evidence this signature is real */
+      var wrow = await env.DB.prepare(
+        'INSERT INTO waivers(ts,name,sig,ip,ua) VALUES(?,?,?,?,?) RETURNING n'
+      ).bind(
+        String(p.ts || new Date().toISOString()).slice(0, 40), wname, wsig,
+        ip, String(p.ua || '').slice(0, 400)
+      ).first();
+      return json({ ok: true, n: wrow.n });
+    }
+
     /* ---- admin actions ---- */
     if (p.action) {
       var gate2 = await requireToken(env, ip, String(p.token || ''));
@@ -353,6 +377,18 @@ async function handle(request, env, ctx) {
         if (!sn) return json({ ok: false, error: 'applicant not found' });
         var u = await env.DB.prepare('UPDATE applications SET status=? WHERE n=?').bind(p.status, sn).run();
         return u.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
+      }
+
+      if (p.action === 'waivers') {
+        var wres = await env.DB.prepare('SELECT n,ts,name,sig,ip,ua FROM waivers ORDER BY n DESC').all();
+        return json({ ok: true, rows: wres.results || [] });
+      }
+
+      if (p.action === 'delwaiver') {
+        var wn = parseInt(p.n, 10);
+        if (!wn) return json({ ok: false, error: 'waiver not found' });
+        var wdel = await env.DB.prepare('DELETE FROM waivers WHERE n=?').bind(wn).run();
+        return wdel.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'waiver not found' });
       }
 
       if (p.action === 'delete') {
