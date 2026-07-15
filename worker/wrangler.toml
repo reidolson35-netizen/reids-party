@@ -4,10 +4,10 @@ compatibility_date = "2026-07-01"
 account_id = "f55e7db86bfb513ac2a7cd178b9887a0"
 workers_dev = true
 
-# acceptance texts: scan for due approvals once a minute (inert until the
-# TWILIO_SID / TWILIO_TOKEN / TWILIO_FROM secrets are set)
+# acceptance texts are button-driven from admin.html now (action:'notify');
+# the empty crons list explicitly clears the old every-minute schedule
 [triggers]
-crons = ["* * * * *"]
+crons = []
 
 [vars]
 # Legacy Apps Script backend - best-effort mirror (Google Sheet + notify email).

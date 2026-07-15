@@ -148,6 +148,7 @@ select.status.REJECTED{border-color:var(--bad);color:var(--bad)}
         <div class="sub">Applications</div>
       </div>
       <div class="topBtns">
+        <button class="btn ghost" id="guestsBtn">Guest list</button>
         <button class="btn ghost" id="refresh">Refresh</button>
         <button class="btn ghost" id="lockBtn">Lock</button>
       </div>
@@ -313,7 +314,13 @@ function render(){
         '<span class="cnum">№ ' + pad(r.n||0) + '</span>' +
         '<span class="cname">' + esc(r.name) + '</span>' +
         '<span class="cage">' + esc(r.age) + '</span>' +
+        (r.sign_key ? '<span style="color:var(--' + (r.signed?'ok':'bad') + ');font-weight:800;font-size:12px;letter-spacing:.04em">' + (r.signed ? 'SIGNED WAIVER' : 'HAS NOT SIGNED WAIVER') + '</span>' : '') +
         '<span class="grow"></span>' +
+        '<select class="status sexSel" title="Guest list group">' +
+          '<option value=""' + (!r.sex?' selected':'') + '>&mdash;</option>' +
+          '<option value="M"' + (r.sex==='M'?' selected':'') + '>Man</option>' +
+          '<option value="F"' + (r.sex==='F'?' selected':'') + '>Woman</option>' +
+        '</select>' +
         '<select class="status ' + esc(st) + '">' +
           STATUSES.map(function(s){ return '<option value="' + s + '"' + (s===st?' selected':'') + '>' + s + '</option>'; }).join('') +
         '</select>' +
@@ -329,12 +336,18 @@ function render(){
       qa('Contrarian take', esc(r.contrarian)) +
       (r.want ? qa('What they want', esc(r.want)) : '') +
       (r.ref ? qa('Found us via', esc(fmtRef(r.ref))) : '') +
-      (r.sign_key ? qa('Waiver link', '<a href="waiver.html?k=' + esc(r.sign_key) + '" target="_blank" rel="noopener">waiver.html?k=' + esc(r.sign_key).slice(0,8) + '&hellip;</a>' + (r.notified === 1 ? ' <span style="color:var(--ok);font-weight:700;font-size:12px">texted</span>' : '')) : '') +
+      (r.sign_key ? qa('Waiver',
+        '<a href="waiver.html?k=' + esc(r.sign_key) + '" target="_blank" rel="noopener">signing link</a>' +
+        (st === 'ACCEPTED'
+          ? ' <button class="prt sendTxt" type="button">' + (r.notified === 1 ? 'Resend approval text' : 'Send approval text') + '</button>' +
+            ' <button class="prt copyTxt" type="button">Copy text</button>'
+          : '') +
+        (r.notified === 1 ? ' <span style="color:var(--ok);font-weight:700;font-size:12px">texted</span>' : '')) : '') +
       (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
       (r.id_images && r.id_images.length ? qa('ID (legacy uploads)', imgBlock(r.id_images, true)) : '') +
       '<div class="ts">' + fmtTs(r.ts) + '</div>';
 
-    var sel = card.querySelector('select.status');
+    var sel = card.querySelector('select.status:not(.sexSel)');
     sel.addEventListener('change', function(){
       var ns = sel.value;
       var old = r.status || 'PENDING';
@@ -347,13 +360,68 @@ function render(){
           if (!res.ok){
             r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
             $('msg').textContent = 'Status update failed: ' + (res.error||'unknown');
+            return;
           }
+          /* approval mints the signing link server-side - reload to show it */
+          if (ns === 'ACCEPTED') load();
         })
         .catch(function(){
           r.status = old; sel.value = old; sel.className = 'status ' + old; renderTabs();
           $('msg').textContent = 'Network error - status not saved.';
         });
     });
+
+    var sx = card.querySelector('select.sexSel');
+    sx.addEventListener('change', function(){
+      r.sex = sx.value;
+      fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'setSex', token: token, n: r.n, sex: sx.value})})
+        .then(function(x){ return x.json(); })
+        .then(function(res){ if (!res.ok) $('msg').textContent = 'Group not saved: ' + (res.error||'unknown'); })
+        .catch(function(){ $('msg').textContent = 'Network error - group not saved.'; });
+    });
+
+    /* Send approval text: 10s countdown, tap again to cancel */
+    var sendBtn = card.querySelector('button.sendTxt');
+    if (sendBtn){
+      var sendLabel = function(){ return r.notified === 1 ? 'Resend approval text' : 'Send approval text'; };
+      var timer = null;
+      sendBtn.addEventListener('click', function(){
+        if (timer){ clearInterval(timer); timer = null; sendBtn.textContent = sendLabel(); return; }
+        var left = 10;
+        sendBtn.textContent = 'Sending in ' + left + ' - tap to cancel';
+        timer = setInterval(function(){
+          left--;
+          if (left > 0){ sendBtn.textContent = 'Sending in ' + left + ' - tap to cancel'; return; }
+          clearInterval(timer); timer = null;
+          sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+          fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'notify', token: token, n: r.n})})
+            .then(function(x){ return x.json(); })
+            .then(function(res){
+              sendBtn.disabled = false;
+              if (res.ok){ r.notified = 1; sendBtn.textContent = sendLabel(); $('msg').textContent = 'Approval text sent to ' + (r.name||'') + '.'; }
+              else { sendBtn.textContent = sendLabel(); $('msg').textContent = 'Text not sent: ' + (res.error||'unknown'); }
+            })
+            .catch(function(){ sendBtn.disabled = false; sendBtn.textContent = sendLabel(); $('msg').textContent = 'Network error - text not sent.'; });
+        }, 1000);
+      });
+    }
+
+    /* Copy text: the exact message (with their link) for manual sending (Burner) */
+    var copyBtn = card.querySelector('button.copyTxt');
+    if (copyBtn){
+      copyBtn.addEventListener('click', function(){
+        fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'notify', token: token, n: r.n, preview: true})})
+          .then(function(x){ return x.json(); })
+          .then(function(res){
+            if (!res.ok) throw new Error(res.error || 'preview failed');
+            return navigator.clipboard.writeText(res.msg).then(function(){
+              copyBtn.textContent = 'Copied';
+              setTimeout(function(){ copyBtn.textContent = 'Copy text'; }, 1500);
+            });
+          })
+          .catch(function(e){ $('msg').textContent = 'Could not copy: ' + ((e && e.message) || 'clipboard blocked'); });
+      });
+    }
 
     var del = card.querySelector('button.del');
     del.addEventListener('click', function(){
@@ -434,7 +502,7 @@ function renderWaivers(){
         '<button class="del" type="button">Delete</button>' +
       '</div>' +
       '<img src="' + esc(r.sig) + '" alt="signature" style="display:block;background:#fff;border-radius:12px;max-width:100%;max-height:96px;margin-top:10px">' +
-      '<div class="ts">' + fmtTs(r.ts) + (r.ip ? ' &middot; ' + esc(r.ip) : '') + '</div>';
+      '<div class="ts">' + fmtTs(r.ts) + (r.app_n ? ' &middot; application № ' + pad(r.app_n) : '') + (r.ip ? ' &middot; ' + esc(r.ip) : '') + '</div>';
     card.querySelector('button.prt').addEventListener('click', function(){ printWaiver(r); });
     card.querySelector('button.del').addEventListener('click', function(){
       if (!window.confirm('Delete signed waiver № ' + pad(r.n||0) + ' - ' + (r.name||'') + '?\nThis permanently removes it and cannot be undone.')) return;
@@ -462,6 +530,7 @@ $('unlock').addEventListener('click', function(){
 });
 $('pass').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('unlock').click(); });
 $('refresh').addEventListener('click', load);
+$('guestsBtn').addEventListener('click', function(){ window.open('guests.html', '_blank'); });
 $('lockBtn').addEventListener('click', function(){
   token = '';
   try{ localStorage.removeItem('rp_admin_token'); }catch(e){}

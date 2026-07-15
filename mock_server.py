@@ -109,6 +109,25 @@ class Handler(SimpleHTTPRequestHandler):
         if p.get("action") == "check":
             # mirror the worker's fail-open contract; no real lookups locally
             return self._json({"ok": True, "result": "unknown"})
+        if p.get("action") == "notify":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            if p.get("preview"):
+                return self._json({"ok": True, "msg": "mock approval text with link", "to": "+15125550100"})
+            return self._json({"ok": False, "error": "Twilio isn’t configured yet - use Copy text and send it from your phone."})
+        if p.get("action") == "setSex":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            return self._json({"ok": True})
+        if p.get("action") == "guestlist":
+            ok_admin = p.get("token") == TOKEN
+            k = str(p.get("k") or "")
+            ok_guest = len(k) == 32 and all(c in "0123456789abcdef" for c in k)
+            if not ok_admin and not ok_guest:
+                return self._json({"ok": False, "error": "invalid link"})
+            rows = [{"name": "Mock M.", "socials": "tiktok.com/@mock", "sex": "M"},
+                    {"name": "Mocka L.", "socials": "instagram.com/mocka", "sex": "F"}]
+            return self._json({"ok": True, "admin": ok_admin, "rows": rows})
         if p.get("action") == "waiverinfo":
             # mock: any well-formed key is an accepted, unsigned applicant
             k = str(p.get("k") or "")

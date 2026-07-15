@@ -34,9 +34,6 @@ function waiverMsg(link) {
 function waiverThanksMsg() {
   return "Thanks! We got your waiver. We'll send you the address on September 4th. It will be in Central Austin.";
 }
-/* wait this long after approval before texting (grace window for misclicks) */
-var NOTIFY_DELAY_SECS = 120;
-var NOTIFY_MAX_TRIES = 5;
 var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 /* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
    cap counts only ACCEPTED submissions; raw attempts get a loose flood guard. */
@@ -131,7 +128,7 @@ function rowOut(r, origin) {
     email: r.email, phone: r.phone, socials: r.socials,
     why: r.why, working: r.working, contrarian: r.contrarian, want: r.want || '',
     ref: r.ref || '', soc_check: r.soc_check || '',
-    sign_key: r.sign_key || '', notified: r.notified || 0,
+    sign_key: r.sign_key || '', notified: r.notified || 0, sex: r.sex || '',
     images: imgs.map(abs), id_images: ids.map(abs)
   };
 }
@@ -158,7 +155,15 @@ async function sendSms(env, to, body) {
 
 async function listAll(env, origin) {
   var res = await env.DB.prepare('SELECT * FROM applications ORDER BY n').all();
-  return (res.results || []).map(function (r) { return rowOut(r, origin); });
+  /* pair each application with its signed waiver for the admin badge */
+  var sres = await env.DB.prepare('SELECT DISTINCT app_n FROM waivers WHERE app_n IS NOT NULL').all();
+  var signedSet = {};
+  (sres.results || []).forEach(function (w) { signedSet[w.app_n] = 1; });
+  return (res.results || []).map(function (r) {
+    var o = rowOut(r, origin);
+    o.signed = !!signedSet[r.n];
+    return o;
+  });
 }
 
 async function requireToken(env, ip, token) {
@@ -308,43 +313,6 @@ export default {
     }
   },
 
-  /* cron (every minute): text the waiver link to anyone approved more than
-     NOTIFY_DELAY_SECS ago. Inert until the TWILIO_* secrets exist - approvals
-     queue up (notified=0) and all go out once Twilio is configured.
-     notified: 0=pending 1=texted 2=unreachable(no usable phone) 3=gave up */
-  async scheduled(event, env, ctx) {
-    try {
-      if (!env.TWILIO_SID || !env.TWILIO_TOKEN || !env.TWILIO_FROM) return;
-      var now = Math.floor(Date.now() / 1000);
-      var due = await env.DB.prepare(
-        "SELECT n,name,phone,sign_key FROM applications WHERE status='ACCEPTED' AND IFNULL(notified,0)=0 " +
-        'AND IFNULL(accepted_ts,0)>0 AND accepted_ts<=? AND IFNULL(notify_tries,0)<? LIMIT 10'
-      ).bind(now - NOTIFY_DELAY_SECS, NOTIFY_MAX_TRIES).all();
-      var rows = due.results || [];
-      for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
-        var to = e164(r.phone);
-        if (!to || !r.sign_key) {
-          await env.DB.prepare('UPDATE applications SET notified=2 WHERE n=?').bind(r.n).run();
-          continue;
-        }
-        var sent = false;
-        try { sent = await sendSms(env, to, waiverMsg('https://reidsparty.com/waiver.html?k=' + r.sign_key)); } catch (e) {}
-        if (sent) {
-          await env.DB.prepare('UPDATE applications SET notified=1, notified_ts=? WHERE n=?')
-            .bind(new Date().toISOString(), r.n).run();
-        } else {
-          /* transient failures retry next minute, bounded by NOTIFY_MAX_TRIES */
-          var tries = await env.DB.prepare(
-            'UPDATE applications SET notify_tries=IFNULL(notify_tries,0)+1 WHERE n=? RETURNING notify_tries'
-          ).bind(r.n).first();
-          if (tries && tries.notify_tries >= NOTIFY_MAX_TRIES) {
-            await env.DB.prepare('UPDATE applications SET notified=3 WHERE n=?').bind(r.n).run();
-          }
-        }
-      }
-    } catch (e) {}
-  }
 };
 
 async function handle(request, env, ctx) {
@@ -412,6 +380,31 @@ async function handle(request, env, ctx) {
       /* fail-open even when flooded: the form must never get stuck on this */
       if (tries > ATTEMPTS_PER_IP_HOUR) return json({ ok: true, result: 'unknown' });
       return json({ ok: true, result: await checkSocial(p.url) });
+    }
+
+    /* ---- guest list: any accepted guest's private k, or the admin token.
+       Names go out as "First L." only; guests never see full names, and
+       guests Reid hasn't sorted into a group yet stay invisible to guests. ---- */
+    if (p.action === 'guestlist') {
+      var gtries = await bump(env, 'try:' + ip, 3600);
+      if (gtries > ATTEMPTS_PER_IP_HOUR) return json({ ok: false, error: 'invalid link' });
+      var isAdmin = String(p.token || '') !== '' && String(p.token || '') === env.ADMIN_TOKEN;
+      if (!isAdmin) {
+        var gk = String(p.k || '');
+        if (!/^[0-9a-f]{32}$/.test(gk)) return json({ ok: false, error: 'invalid link' });
+        var gapp = await env.DB.prepare("SELECT n FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(gk).first();
+        if (!gapp) return json({ ok: false, error: 'invalid link' });
+      }
+      var gres = await env.DB.prepare("SELECT name,socials,sex FROM applications WHERE status='ACCEPTED' ORDER BY name COLLATE NOCASE").all();
+      var out = [];
+      (gres.results || []).forEach(function (g) {
+        var gsex = (g.sex === 'M' || g.sex === 'F') ? g.sex : '';
+        if (!gsex && !isAdmin) return;
+        var parts = String(g.name || '').trim().split(/\s+/);
+        var disp = parts[0] + (parts.length > 1 ? ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.' : '');
+        out.push({ name: disp, socials: String(g.socials || ''), sex: gsex });
+      });
+      return json({ ok: true, admin: isAdmin, rows: out });
     }
 
     /* ---- who does this signing link belong to (waiver.html?k=...) ---- */
@@ -486,6 +479,44 @@ async function handle(request, env, ctx) {
         }
         var u = await env.DB.prepare('UPDATE applications SET status=? WHERE n=?').bind(p.status, sn).run();
         return u.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
+      }
+
+      /* Reid's "Send approval text" button (the 10s cancel window lives in
+         admin.html - by the time this arrives, he means it). preview:true
+         returns the exact message so he can Copy-text it into his Burner
+         app manually while Twilio is unconfigured. */
+      if (p.action === 'notify') {
+        var nn = parseInt(p.n, 10);
+        if (!nn) return json({ ok: false, error: 'applicant not found' });
+        var napp = await env.DB.prepare('SELECT n,name,phone,status,sign_key,notified FROM applications WHERE n=?').bind(nn).first();
+        if (!napp) return json({ ok: false, error: 'applicant not found' });
+        if (napp.status !== 'ACCEPTED') return json({ ok: false, error: 'Approve them first - the text carries their signing link.' });
+        var nkey = napp.sign_key;
+        if (!nkey) {
+          nkey = hex(crypto.getRandomValues(new Uint8Array(16)));
+          await env.DB.prepare('UPDATE applications SET sign_key=? WHERE n=?').bind(nkey, nn).run();
+        }
+        var nmsg = waiverMsg('https://reidsparty.com/waiver.html?k=' + nkey);
+        var nto = e164(napp.phone);
+        if (p.preview) return json({ ok: true, msg: nmsg, to: nto || String(napp.phone || '') });
+        if (!env.TWILIO_SID || !env.TWILIO_TOKEN || !env.TWILIO_FROM) {
+          return json({ ok: false, error: 'Twilio isn’t configured yet - use Copy text and send it from your phone.' });
+        }
+        if (!nto) return json({ ok: false, error: 'No usable phone number on this application.' });
+        var nok = false;
+        try { nok = await sendSms(env, nto, nmsg); } catch (e) {}
+        if (!nok) return json({ ok: false, error: 'Twilio rejected the send. Try again.' });
+        await env.DB.prepare('UPDATE applications SET notified=1, notified_ts=? WHERE n=?').bind(new Date().toISOString(), nn).run();
+        return json({ ok: true });
+      }
+
+      /* which group a guest lands in on the guest list (the form never asks) */
+      if (p.action === 'setSex') {
+        var xn = parseInt(p.n, 10);
+        var xs = (p.sex === 'M' || p.sex === 'F') ? p.sex : '';
+        if (!xn) return json({ ok: false, error: 'applicant not found' });
+        var xu = await env.DB.prepare('UPDATE applications SET sex=? WHERE n=?').bind(xs, xn).run();
+        return xu.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
       }
 
       if (p.action === 'waivers') {

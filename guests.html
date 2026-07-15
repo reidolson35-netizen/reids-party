@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Guest List - Reid's Parties</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf4c7'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23e4726a' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="stylesheet" href="https://use.typekit.net/yvb0zhe.css">
+<style>
+:root{
+  --bg:#fbf4c7;
+  --rose:#e79b93;
+  --rose-head:#efa79f;
+  --rose-bold:#e4726a;
+  --fdisp:"quiche-display","Fraunces",Georgia,serif;
+  --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--rose);
+  font-family:var(--fsans);font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+main{max-width:640px;margin:0 auto;padding:52px 24px 72px}
+h1{
+  font-family:var(--fdisp);font-weight:700;
+  font-size:clamp(34px,6vw,46px);line-height:1.05;
+  color:var(--rose-bold);margin:0 0 6px;
+}
+.sub{font-weight:600;font-size:15px;color:var(--rose-bold);margin:0 0 4px}
+.note{font-weight:600;font-size:14px;color:var(--rose-head);margin:0 0 40px}
+h2{
+  font-family:var(--fdisp);font-weight:700;
+  font-size:clamp(24px,4vw,30px);color:var(--rose-head);
+  margin:38px 0 14px;
+}
+.guest{margin:0 0 12px}
+.gname{font-weight:700;color:var(--rose-bold)}
+.gsoc{margin-left:10px;font-size:15px;word-break:break-all}
+.gsoc a{color:var(--rose);text-decoration:underline;text-underline-offset:3px}
+.gsoc span{color:var(--rose)}
+#msg{font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <h1>The Guest List</h1>
+  <p class="sub">Reid&rsquo;s Parties - September 5th, 2026</p>
+  <p class="note">(visible only to approved guests)</p>
+  <div id="msg">Loading&hellip;</div>
+  <div id="list"></div>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function(){
+'use strict';
+var EP = (window.PARTY_CONFIG && window.PARTY_CONFIG.ENDPOINT) || '/exec';
+var $ = function(id){ return document.getElementById(id); };
+
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function links(s){
+  return String(s||'').split(/[\s,]+/).filter(Boolean).map(function(tk){
+    if (/\./.test(tk)){
+      var href = /^https?:\/\//i.test(tk) ? tk : 'https://' + tk;
+      return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(tk.replace(/^https?:\/\//i,'')) + '</a>';
+    }
+    return '<span>' + esc(tk) + '</span>';
+  }).join(' ');
+}
+
+var K = '';
+try { K = new URLSearchParams(location.search).get('k') || ''; }catch(e){}
+var token = '';
+try { token = localStorage.getItem('rp_admin_token') || ''; }catch(e){}
+
+function denied(){
+  $('msg').textContent = 'This page is invitation-only. Approved guests get a private link by text.';
+}
+
+if (!/^[0-9a-f]{32}$/.test(K) && !token){ denied(); }
+else {
+  fetch(EP, {method:'POST', body: JSON.stringify({action:'guestlist', k: K, token: token})})
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (!res.ok) return denied();
+      var rows = res.rows || [];
+      if (!rows.length){
+        $('msg').textContent = 'The list goes live a few days before the party.';
+        return;
+      }
+      $('msg').textContent = '';
+      var groups = [
+        {sex:'M', title:'Gentlemen'},
+        {sex:'F', title:'Ladies'}
+      ];
+      if (res.admin) groups.push({sex:'', title:'Not sorted yet (only you see this)'});
+      var html = '';
+      groups.forEach(function(g){
+        var members = rows.filter(function(r){ return r.sex === g.sex; });
+        if (!members.length) return;
+        html += '<h2>' + g.title + '</h2>';
+        members.forEach(function(m){
+          html += '<div class="guest"><span class="gname">' + esc(m.name) + '</span>' +
+                  (m.socials ? '<span class="gsoc">' + links(m.socials) + '</span>' : '') + '</div>';
+        });
+      });
+      $('list').innerHTML = html;
+    })
+    .catch(function(){ $('msg').textContent = 'Network error - try again.'; });
+}
+})();
+</script>
+</body>
+</html>
