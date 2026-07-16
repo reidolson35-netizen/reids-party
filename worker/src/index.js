@@ -22,7 +22,7 @@
 var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
 /* email left out on purpose: the form is phone-only now (acceptance goes out
    by text - "nobody checks their email"); legacy rows still carry emails */
-var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'want'];
+var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'hobby', 'want'];
 
 /* Reid's copy (straight apostrophes on purpose: keeps SMS in GSM-7, fewer segments) */
 function waiverMsg(link) {
