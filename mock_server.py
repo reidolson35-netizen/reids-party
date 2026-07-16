@@ -26,7 +26,7 @@ except OSError:
     TOKEN = "partypass"
 
 STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
-REQUIRED = ["name", "socials", "age", "why", "working", "contrarian", "want"]
+REQUIRED = ["name", "socials", "age", "why", "working", "contrarian", "hobby", "want"]
 WAIVERS = []  # signed waivers, in-memory only (mock restarts start clean)
 
 
@@ -232,6 +232,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "why": why,
                 "working": str(a.get("working", "")).strip(),
                 "contrarian": str(a.get("contrarian", "")).strip(),
+                "hobby": str(a.get("hobby", "")).strip(),
                 "want": str(a.get("want", "")).strip(),
                 "ref": str(p.get("ref", ""))[:300],
                 "images": save_images(p.get("images") or [], n, "img", 5),

@@ -299,7 +299,7 @@ function srcName(r){
 function matches(r){
   if (activeTab !== 'ALL' && (r.status||'PENDING') !== activeTab) return false;
   if (!query) return true;
-  var hay = [r.name, r.email, r.phone, r.socials, r.why, r.working, r.contrarian, r.want, r.age, r.ref, srcName(r)].join(' ').toLowerCase();
+  var hay = [r.name, r.email, r.phone, r.socials, r.why, r.working, r.contrarian, r.hobby, r.want, r.age, r.ref, srcName(r)].join(' ').toLowerCase();
   return hay.indexOf(query) >= 0;
 }
 
@@ -343,6 +343,7 @@ function render(){
       qa('Why they want in', esc(r.why)) +
       qa('Working on', esc(r.working)) +
       qa('Contrarian take', esc(r.contrarian)) +
+      (r.hobby ? qa('Childhood hobby', esc(r.hobby)) : '') +
       (r.want ? qa('What they want', esc(r.want)) : '') +
       (r.ref ? qa('Found us via', esc(fmtRef(r.ref))) : '') +
       (r.sign_key ? qa('Waiver',

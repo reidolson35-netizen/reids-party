@@ -126,7 +126,7 @@ function rowOut(r, origin) {
   return {
     n: r.n, ts: r.ts, status: r.status, name: r.name, age: r.age,
     email: r.email, phone: r.phone, socials: r.socials,
-    why: r.why, working: r.working, contrarian: r.contrarian, want: r.want || '',
+    why: r.why, working: r.working, contrarian: r.contrarian, hobby: r.hobby || '', want: r.want || '',
     ref: r.ref || '', soc_check: r.soc_check || '',
     sign_key: r.sign_key || '', notified: r.notified || 0, sex: r.sex || '',
     images: imgs.map(abs), id_images: ids.map(abs)
@@ -219,13 +219,13 @@ async function submit(env, ctx, p, rawBody, ip) {
   }
 
   var row = await env.DB.prepare(
-    'INSERT INTO applications(ts,status,name,age,email,phone,socials,why,working,contrarian,want,images_json,ua,ref) ' +
-    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING n'
+    'INSERT INTO applications(ts,status,name,age,email,phone,socials,why,working,contrarian,hobby,want,images_json,ua,ref) ' +
+    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING n'
   ).bind(
     String(p.ts || new Date().toISOString()), 'PENDING',
     String(a.name).trim(), age, String(a.email).trim(), String(a.phone).trim(),
     String(a.socials).trim(), why, String(a.working).trim(), String(a.contrarian).trim(),
-    String(a.want).trim(), JSON.stringify(imgRefs.map(function (k) { return 'img:' + k; })),
+    String(a.hobby || '').trim(), String(a.want).trim(), JSON.stringify(imgRefs.map(function (k) { return 'img:' + k; })),
     String(p.ua || '').slice(0, 400), String(p.ref || '').slice(0, 300)
   ).first();
   var n = row.n;
