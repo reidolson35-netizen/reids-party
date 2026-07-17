@@ -99,6 +99,7 @@ select.status{
 select.status.ACCEPTED{border-color:var(--ok);color:var(--ok)}
 select.status.WAITLIST{border-color:var(--warn);color:var(--warn)}
 select.status.REJECTED{border-color:var(--bad);color:var(--bad)}
+select.status.PROBABLY{border-color:var(--ok);color:var(--ok);border-style:dashed}
 .del{
   appearance:none;background:transparent;border:2px solid rgba(192,80,77,.35);color:var(--bad);
   border-radius:999px;padding:9px 14px;font-family:var(--fsans);font-weight:700;font-size:12px;
@@ -172,7 +173,7 @@ select.status.REJECTED{border-color:var(--bad);color:var(--bad)}
 var CFG = window.PARTY_CONFIG || {};
 var LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
-var STATUSES = ['PENDING','ACCEPTED','WAITLIST','REJECTED'];
+var STATUSES = ['PENDING','ACCEPTED','PROBABLY YES','WAITLIST','REJECTED'];
 var TABS = ['ALL'].concat(STATUSES);
 
 var token = '';

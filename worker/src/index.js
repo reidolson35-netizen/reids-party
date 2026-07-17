@@ -19,7 +19,7 @@
  * Secrets: ADMIN_TOKEN (wrangler secret) - same passcode admin.html uses.
  */
 
-var STATUSES = ['PENDING', 'ACCEPTED', 'WAITLIST', 'REJECTED'];
+var STATUSES = ['PENDING', 'ACCEPTED', 'PROBABLY YES', 'WAITLIST', 'REJECTED'];
 /* email left out on purpose: the form is phone-only now (acceptance goes out
    by text - "nobody checks their email"); legacy rows still carry emails */
 var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'hobby', 'want'];

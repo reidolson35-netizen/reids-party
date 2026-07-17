@@ -25,7 +25,7 @@ try:
 except OSError:
     TOKEN = "partypass"
 
-STATUSES = {"PENDING", "ACCEPTED", "WAITLIST", "REJECTED"}
+STATUSES = {"PENDING", "ACCEPTED", "PROBABLY YES", "WAITLIST", "REJECTED"}
 REQUIRED = ["name", "socials", "age", "why", "working", "contrarian", "hobby", "want"]
 WAIVERS = []  # signed waivers, in-memory only (mock restarts start clean)
 
