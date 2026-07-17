@@ -129,6 +129,7 @@ function rowOut(r, origin) {
     why: r.why, working: r.working, contrarian: r.contrarian, hobby: r.hobby || '', want: r.want || '',
     ref: r.ref || '', soc_check: r.soc_check || '',
     sign_key: r.sign_key || '', notified: r.notified || 0, sex: r.sex || '', notes: r.notes || '',
+    bio: r.bio || '', guest_photo: r.guest_photo ? origin + '/img/' + r.guest_photo : '',
     images: imgs.map(abs), id_images: ids.map(abs)
   };
 }
@@ -392,19 +393,58 @@ async function handle(request, env, ctx) {
       if (!isAdmin) {
         var gk = String(p.k || '');
         if (!/^[0-9a-f]{32}$/.test(gk)) return json({ ok: false, error: 'invalid link' });
-        var gapp = await env.DB.prepare("SELECT n FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(gk).first();
+        var gapp = await env.DB.prepare("SELECT name,bio FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(gk).first();
         if (!gapp) return json({ ok: false, error: 'invalid link' });
+        /* the about-me is the price of admission: no bio yet -> the page shows
+           the form instead of the list */
+        if (!String(gapp.bio || '').trim()) return json({ ok: true, needsBio: true, name: String(gapp.name || '') });
       }
-      var gres = await env.DB.prepare("SELECT name,socials,sex FROM applications WHERE status='ACCEPTED' ORDER BY name COLLATE NOCASE").all();
+      var gres = await env.DB.prepare("SELECT name,socials,sex,bio,guest_photo FROM applications WHERE status='ACCEPTED' ORDER BY name COLLATE NOCASE").all();
       var out = [];
       (gres.results || []).forEach(function (g) {
         var gsex = (g.sex === 'M' || g.sex === 'F') ? g.sex : '';
         if (!gsex && !isAdmin) return;
         var parts = String(g.name || '').trim().split(/\s+/);
         var disp = parts[0] + (parts.length > 1 ? ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.' : '');
-        out.push({ name: disp, socials: String(g.socials || ''), sex: gsex });
+        out.push({ name: disp, socials: String(g.socials || ''), sex: gsex,
+                   bio: String(g.bio || ''), photo: g.guest_photo ? origin + '/img/' + g.guest_photo : '' });
       });
       return json({ ok: true, admin: isAdmin, rows: out });
+    }
+
+    /* ---- guest fills in their "a little about me" (+ optional photo) via
+       their private ?k= link. Bio is required, photo optional; this is what
+       unlocks the guest list for them and what shows up next to their name. ---- */
+    if (p.action === 'guestbio') {
+      var btries = await bump(env, 'try:' + ip, 3600);
+      if (btries > ATTEMPTS_PER_IP_HOUR) return json({ ok: false, error: 'invalid link' });
+      var bk = String(p.k || '');
+      if (!/^[0-9a-f]{32}$/.test(bk)) return json({ ok: false, error: 'invalid link' });
+      var bapp = await env.DB.prepare("SELECT n,guest_photo FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(bk).first();
+      if (!bapp) return json({ ok: false, error: 'invalid link' });
+      var bio = String(p.bio || '').trim().slice(0, 2000);
+      if (!bio) return json({ ok: false, error: 'Please write a little about yourself.' });
+      var photoKey = null;
+      var pdata = p.photo && String(p.photo.data || '');
+      if (pdata) {
+        if (pdata.indexOf(',') >= 0) pdata = pdata.split(',').pop();
+        if (pdata.length && pdata.length <= 2500000) {
+          try {
+            photoKey = hex(crypto.getRandomValues(new Uint8Array(16)));
+            var pmime = IMG_TYPES.indexOf(p.photo.type) >= 0 ? p.photo.type : 'image/jpeg';
+            await env.DB.prepare('INSERT INTO images(key,n,idx,mime,data) VALUES(?,?,100,?,?)')
+              .bind(photoKey, bapp.n, pmime, pdata).run();
+          } catch (e) { photoKey = null; }
+        }
+      }
+      if (photoKey) {
+        await env.DB.prepare('UPDATE applications SET bio=?, guest_photo=? WHERE n=?').bind(bio, photoKey, bapp.n).run();
+        /* drop the previous photo so re-submits don't orphan rows */
+        if (bapp.guest_photo) { try { await env.DB.prepare('DELETE FROM images WHERE key=?').bind(bapp.guest_photo).run(); } catch (e) {} }
+      } else {
+        await env.DB.prepare('UPDATE applications SET bio=? WHERE n=?').bind(bio, bapp.n).run();
+      }
+      return json({ ok: true });
     }
 
     /* ---- who does this signing link belong to (waiver.html?k=...) ---- */

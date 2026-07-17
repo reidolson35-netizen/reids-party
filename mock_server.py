@@ -123,6 +123,13 @@ class Handler(SimpleHTTPRequestHandler):
             if p.get("token") != TOKEN:
                 return self._json({"ok": False, "error": "bad token"})
             return self._json({"ok": True})
+        if p.get("action") == "guestbio":
+            k = str(p.get("k") or "")
+            if not (len(k) == 32 and all(c in "0123456789abcdef" for c in k)):
+                return self._json({"ok": False, "error": "invalid link"})
+            if not str(p.get("bio") or "").strip():
+                return self._json({"ok": False, "error": "Please write a little about yourself."})
+            return self._json({"ok": True})
         if p.get("action") == "guestlist":
             ok_admin = p.get("token") == TOKEN
             k = str(p.get("k") or "")

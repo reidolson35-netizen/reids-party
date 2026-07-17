@@ -154,6 +154,7 @@ textarea.noteBox:focus{border-style:solid}
       </div>
       <div class="topBtns">
         <button class="btn ghost" id="guestsBtn">Guest list</button>
+        <button class="btn ghost" id="copyLinksBtn" title="Copy a personalized guest-list link for every accepted guest">Copy guest links</button>
         <button class="btn ghost" id="refresh">Refresh</button>
         <button class="btn ghost" id="lockBtn">Lock</button>
       </div>
@@ -358,6 +359,14 @@ function render(){
             ' <button class="prt copyTxt" type="button">Copy text</button>'
           : '') +
         (r.notified === 1 ? ' <span style="color:var(--ok);font-weight:700;font-size:12px">texted</span>' : '')) : '') +
+      (st === 'ACCEPTED' && r.sign_key ? qa('Guest list link',
+        '<a href="guests.html?k=' + esc(r.sign_key) + '" target="_blank" rel="noopener">open</a>' +
+        ' <button class="prt copyGuest" type="button">Copy guest link</button>' +
+        (String(r.bio||'').trim()
+          ? ' <span style="color:var(--ok);font-weight:700;font-size:12px">about-me done</span>'
+          : ' <span style="color:var(--warn);font-weight:700;font-size:12px">no about-me yet</span>')) : '') +
+      (String(r.bio||'').trim() ? qa('About me (guest)', esc(r.bio)) : '') +
+      (r.guest_photo ? qa('Guest photo', '<img src="' + esc(r.guest_photo) + '" alt="" style="max-width:120px;border-radius:12px;display:block">') : '') +
       (r.images && r.images.length ? qa('Images', imgBlock(r.images, false)) : '') +
       (r.id_images && r.id_images.length ? qa('ID (legacy uploads)', imgBlock(r.id_images, true)) : '') +
       '<div class="qa"><div class="l">Notes (private)</div><div class="v"><textarea class="noteBox" placeholder="Only visible to people with a login.">' + esc(r.notes || '') + '</textarea></div></div>' +
@@ -450,6 +459,17 @@ function render(){
             });
           })
           .catch(function(e){ $('msg').textContent = 'Could not copy: ' + ((e && e.message) || 'clipboard blocked'); });
+      });
+    }
+
+    var copyGuest = card.querySelector('button.copyGuest');
+    if (copyGuest){
+      copyGuest.addEventListener('click', function(){
+        var link = location.origin + '/guests.html?k=' + r.sign_key;
+        navigator.clipboard.writeText(link).then(function(){
+          copyGuest.textContent = 'Copied';
+          setTimeout(function(){ copyGuest.textContent = 'Copy guest link'; }, 1500);
+        }).catch(function(){ $('msg').textContent = 'Could not copy - clipboard blocked.'; });
       });
     }
 
@@ -561,6 +581,16 @@ $('unlock').addEventListener('click', function(){
 $('pass').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('unlock').click(); });
 $('refresh').addEventListener('click', load);
 $('guestsBtn').addEventListener('click', function(){ window.open('guests.html', '_blank'); });
+$('copyLinksBtn').addEventListener('click', function(){
+  var accepted = rows.filter(function(r){ return (r.status||'').toUpperCase() === 'ACCEPTED' && r.sign_key; });
+  if (!accepted.length){ $('msg').textContent = 'No accepted guests yet.'; return; }
+  var text = accepted.map(function(r){
+    return (r.name || '(no name)') + ': ' + location.origin + '/guests.html?k=' + r.sign_key;
+  }).join('\n');
+  navigator.clipboard.writeText(text).then(function(){
+    $('msg').textContent = 'Copied ' + accepted.length + ' guest link' + (accepted.length === 1 ? '' : 's') + ' to clipboard.';
+  }).catch(function(){ $('msg').textContent = 'Could not copy - clipboard blocked.'; });
+});
 $('lockBtn').addEventListener('click', function(){
   token = '';
   try{ localStorage.removeItem('rp_admin_token'); }catch(e){}

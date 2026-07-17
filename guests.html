@@ -13,6 +13,7 @@
   --rose:#e79b93;
   --rose-head:#efa79f;
   --rose-bold:#e4726a;
+  --pill:#f7cbc6;
   --fdisp:"quiche-display","Fraunces",Georgia,serif;
   --fsans:"quiche-sans","Figtree",system-ui,-apple-system,sans-serif;
 }
@@ -36,12 +37,44 @@ h2{
   font-size:clamp(24px,4vw,30px);color:var(--rose-head);
   margin:38px 0 14px;
 }
-.guest{margin:0 0 12px}
+.guest{display:flex;gap:14px;align-items:flex-start;margin:0 0 20px}
+.gpic{flex:0 0 auto;width:56px;height:56px;border-radius:50%;object-fit:cover;
+  background:var(--pill);border:2px solid rgba(228,114,106,.25)}
+.gpic.ph{display:flex;align-items:center;justify-content:center;font-family:var(--fdisp);
+  font-weight:700;font-size:22px;color:var(--rose-bold)}
+.gbody{flex:1 1 auto;min-width:0}
 .gname{font-weight:700;color:var(--rose-bold)}
 .gsoc{margin-left:10px;font-size:15px;word-break:break-all}
 .gsoc a{color:var(--rose);text-decoration:underline;text-underline-offset:3px}
 .gsoc span{color:var(--rose)}
+.gbio{margin:3px 0 0;font-size:15px;line-height:1.5;color:var(--rose);white-space:pre-wrap}
 #msg{font-weight:600}
+
+/* the about-me gate */
+.gate{margin:0}
+.gate label{display:block;font-weight:700;color:var(--rose-bold);margin:0 0 8px;font-size:16px}
+textarea.bio{
+  width:100%;min-height:132px;padding:14px 16px;box-sizing:border-box;
+  background:#fff;border:2px solid var(--pill);border-radius:14px;
+  color:#7a4b46;font-family:var(--fsans);font-size:16px;line-height:1.5;resize:vertical;outline:none;
+}
+textarea.bio:focus{border-color:var(--rose-bold)}
+.photoRow{display:flex;align-items:center;gap:14px;margin:18px 0 6px}
+.photoBtn{
+  appearance:none;cursor:pointer;font-family:var(--fsans);font-weight:700;font-size:14px;
+  color:var(--rose-bold);background:transparent;border:2px dashed rgba(228,114,106,.5);
+  border-radius:999px;padding:11px 20px;
+}
+.photoPrev{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--pill)}
+.photoDrop{background:transparent;border:none;color:var(--rose-head);font-weight:700;
+  cursor:pointer;font-size:20px;line-height:1;padding:4px}
+.btn{
+  appearance:none;cursor:pointer;font-family:var(--fsans);font-weight:700;font-size:18px;
+  color:#7a4b46;background:var(--pill);border:none;border-radius:999px;
+  padding:15px 34px;margin-top:22px;
+}
+.btn:disabled{opacity:.55;cursor:default}
+.hint{font-size:14px;color:var(--rose-head);font-weight:600;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -50,7 +83,7 @@ h2{
   <p class="sub">Reid&rsquo;s Parties - September 5th, 2026</p>
   <p class="note">(visible only to approved guests)</p>
   <div id="msg">Loading&hellip;</div>
-  <div id="list"></div>
+  <div id="view"></div>
 </main>
 
 <script src="config.js"></script>
@@ -73,6 +106,27 @@ function links(s){
     return '<span>' + esc(tk) + '</span>';
   }).join(' ');
 }
+function initial(name){ var t = String(name||'').trim(); return t ? t.charAt(0).toUpperCase() : '?'; }
+
+/* downscale a chosen photo to a small JPEG so it fits the worker's cap */
+function readPhoto(file){
+  return new Promise(function(resolve){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var scale = Math.min(1, 1200 / Math.max(w, h));
+      w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      var dataUrl = c.toDataURL('image/jpeg', 0.82);
+      URL.revokeObjectURL(url);
+      resolve({ type:'image/jpeg', data: dataUrl.split(',')[1], thumb: dataUrl });
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
 
 var K = '';
 try { K = new URLSearchParams(location.search).get('k') || ''; }catch(e){}
@@ -80,40 +134,113 @@ var token = '';
 try { token = localStorage.getItem('rp_admin_token') || ''; }catch(e){}
 
 function denied(){
+  $('view').innerHTML = '';
   $('msg').textContent = 'This page is invitation-only. Approved guests get a private link by text.';
 }
 
-if (!/^[0-9a-f]{32}$/.test(K) && !token){ denied(); }
-else {
+function loadList(){
+  $('msg').textContent = 'Loading…';
   fetch(EP, {method:'POST', body: JSON.stringify({action:'guestlist', k: K, token: token})})
     .then(function(r){ return r.json(); })
     .then(function(res){
       if (!res.ok) return denied();
-      var rows = res.rows || [];
-      if (!rows.length){
-        $('msg').textContent = 'The list goes live a few days before the party.';
-        return;
-      }
-      $('msg').textContent = '';
-      var groups = [
-        {sex:'M', title:'Gentlemen'},
-        {sex:'F', title:'Ladies'}
-      ];
-      if (res.admin) groups.push({sex:'', title:'Not sorted yet (only you see this)'});
-      var html = '';
-      groups.forEach(function(g){
-        var members = rows.filter(function(r){ return r.sex === g.sex; });
-        if (!members.length) return;
-        html += '<h2>' + g.title + '</h2>';
-        members.forEach(function(m){
-          html += '<div class="guest"><span class="gname">' + esc(m.name) + '</span>' +
-                  (m.socials ? '<span class="gsoc">' + links(m.socials) + '</span>' : '') + '</div>';
-        });
-      });
-      $('list').innerHTML = html;
+      if (res.needsBio) return renderGate(res.name || '');
+      renderList(res);
     })
     .catch(function(){ $('msg').textContent = 'Network error - try again.'; });
 }
+
+function renderList(res){
+  var rows = res.rows || [];
+  if (!rows.length){
+    $('view').innerHTML = '';
+    $('msg').textContent = 'The list goes live a few days before the party.';
+    return;
+  }
+  $('msg').textContent = '';
+  var groups = [ {sex:'M', title:'Gentlemen'}, {sex:'F', title:'Ladies'} ];
+  if (res.admin) groups.push({sex:'', title:'Not sorted yet (only you see this)'});
+  var html = '';
+  groups.forEach(function(g){
+    var members = rows.filter(function(r){ return r.sex === g.sex; });
+    if (!members.length) return;
+    html += '<h2>' + g.title + '</h2>';
+    members.forEach(function(m){
+      var pic = m.photo
+        ? '<img class="gpic" src="' + esc(m.photo) + '" alt="">'
+        : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
+      html += '<div class="guest">' + pic + '<div class="gbody">' +
+                '<span class="gname">' + esc(m.name) + '</span>' +
+                (m.socials ? '<span class="gsoc">' + links(m.socials) + '</span>' : '') +
+                (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
+              '</div></div>';
+    });
+  });
+  $('view').innerHTML = html;
+}
+
+function renderGate(name){
+  $('msg').textContent = '';
+  var hi = name ? ('Hey ' + esc(String(name).trim().split(/\s+/)[0]) + ',') : 'Almost there,';
+  $('view').innerHTML =
+    '<div class="gate">' +
+      '<p class="sub" style="margin-bottom:18px">' + hi + ' tell everyone a little about yourself to see the guest list. ' +
+        'This shows up next to your name for the other guests.</p>' +
+      '<label for="bio">A little bit about me</label>' +
+      '<textarea class="bio" id="bio" placeholder="Who are you? What are you into? Anything you want the room to know."></textarea>' +
+      '<div class="photoRow" id="photoRow">' +
+        '<button class="photoBtn" type="button" id="photoBtn">Add a photo of yourself</button>' +
+        '<span class="hint">Optional</span>' +
+      '</div>' +
+      '<input type="file" id="photoInput" accept="image/*" style="display:none">' +
+      '<div><button class="btn" id="go" type="button">See the guest list</button></div>' +
+      '<p class="hint" id="gerr"></p>' +
+    '</div>';
+
+  var photo = null;
+  var input = $('photoInput');
+  function pickPhoto(){ input.click(); }
+  $('photoBtn').addEventListener('click', pickPhoto);
+  input.addEventListener('change', function(){
+    var f = (input.files || [])[0]; input.value = '';
+    if (!f) return;
+    $('gerr').textContent = '';
+    readPhoto(f).then(function(p){
+      if (!p){ $('gerr').textContent = 'Could not read that image, try another.'; return; }
+      photo = p;
+      $('photoRow').innerHTML =
+        '<img class="photoPrev" src="' + p.thumb + '" alt="">' +
+        '<button class="photoDrop" type="button" title="Remove">&times;</button>' +
+        '<span class="hint">Looks good</span>';
+      $('photoRow').querySelector('.photoDrop').addEventListener('click', function(){
+        photo = null;
+        $('photoRow').innerHTML =
+          '<button class="photoBtn" type="button" id="photoBtn2">Add a photo of yourself</button>' +
+          '<span class="hint">Optional</span>';
+        $('photoRow').querySelector('#photoBtn2').addEventListener('click', pickPhoto);
+      });
+    });
+  });
+
+  var go = $('go');
+  go.addEventListener('click', function(){
+    var bio = ($('bio').value || '').trim();
+    if (!bio){ $('gerr').textContent = 'Write a little about yourself first.'; $('bio').focus(); return; }
+    go.disabled = true; go.textContent = 'Saving…';
+    var body = {action:'guestbio', k: K, bio: bio};
+    if (photo) body.photo = {type: photo.type, data: photo.data};
+    fetch(EP, {method:'POST', body: JSON.stringify(body)})
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (!res.ok){ go.disabled = false; go.textContent = 'See the guest list'; $('gerr').textContent = res.error || 'Something went wrong, try again.'; return; }
+        loadList();
+      })
+      .catch(function(){ go.disabled = false; go.textContent = 'See the guest list'; $('gerr').textContent = 'Network error, try again.'; });
+  });
+}
+
+if (!/^[0-9a-f]{32}$/.test(K) && !token){ denied(); }
+else { loadList(); }
 })();
 </script>
 </body>
