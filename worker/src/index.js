@@ -128,7 +128,7 @@ function rowOut(r, origin) {
     email: r.email, phone: r.phone, socials: r.socials,
     why: r.why, working: r.working, contrarian: r.contrarian, hobby: r.hobby || '', want: r.want || '',
     ref: r.ref || '', soc_check: r.soc_check || '',
-    sign_key: r.sign_key || '', notified: r.notified || 0, sex: r.sex || '',
+    sign_key: r.sign_key || '', notified: r.notified || 0, sex: r.sex || '', notes: r.notes || '',
     images: imgs.map(abs), id_images: ids.map(abs)
   };
 }
@@ -517,6 +517,16 @@ async function handle(request, env, ctx) {
         if (!xn) return json({ ok: false, error: 'applicant not found' });
         var xu = await env.DB.prepare('UPDATE applications SET sex=? WHERE n=?').bind(xs, xn).run();
         return xu.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
+      }
+
+      /* Reid's private per-applicant notes - admin-token only; never selected
+         by the public guestlist/waiverinfo queries */
+      if (p.action === 'setNotes') {
+        var on = parseInt(p.n, 10);
+        if (!on) return json({ ok: false, error: 'applicant not found' });
+        var ou = await env.DB.prepare('UPDATE applications SET notes=? WHERE n=?')
+          .bind(String(p.notes || '').slice(0, 5000), on).run();
+        return ou.meta.changes ? json({ ok: true }) : json({ ok: false, error: 'applicant not found' });
       }
 
       if (p.action === 'waivers') {

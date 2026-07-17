@@ -119,6 +119,10 @@ class Handler(SimpleHTTPRequestHandler):
             if p.get("token") != TOKEN:
                 return self._json({"ok": False, "error": "bad token"})
             return self._json({"ok": True})
+        if p.get("action") == "setNotes":
+            if p.get("token") != TOKEN:
+                return self._json({"ok": False, "error": "bad token"})
+            return self._json({"ok": True})
         if p.get("action") == "guestlist":
             ok_admin = p.get("token") == TOKEN
             k = str(p.get("k") or "")
