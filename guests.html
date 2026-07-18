@@ -265,7 +265,7 @@ function renderList(res){
   while (im < men.length || iw < women.length){
     if (iw >= women.length) rest.push(men[im++]);
     else if (im >= men.length) rest.push(women[iw++]);
-    else if (im * women.length <= iw * men.length) rest.push(men[im++]);
+    else if ((2*im + 1) * women.length <= (2*iw + 1) * men.length) rest.push(men[im++]);
     else rest.push(women[iw++]);
   }
   var html = '';
