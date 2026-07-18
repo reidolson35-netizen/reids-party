@@ -235,24 +235,32 @@ function renderList(res){
     return;
   }
   $('msg').textContent = '';
-  var groups = [ {sex:'M', title:'Gentlemen'}, {sex:'F', title:'Ladies'} ];
-  if (res.admin) groups.push({sex:'', title:'Not sorted yet (only you see this)'});
-  var html = '';
-  groups.forEach(function(g){
-    var members = rows.filter(function(r){ return r.sex === g.sex; });
-    if (!members.length) return;
-    html += '<h2>' + g.title + '</h2>';
-    members.forEach(function(m){
-      var pic = m.photo
-        ? '<img class="gpic" src="' + esc(m.photo) + '" alt="">'
-        : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
-      html += '<div class="guest">' +
-                '<div class="ghead">' + pic + '<span class="gname">' + esc(m.name) + '</span>' +
-                  (m.mine && res.me ? '<span class="cedit">edit</span>' : '') + '</div>' +
-                (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
-              '</div>';
-    });
+  function card(m){
+    var pic = m.photo
+      ? '<img class="gpic" src="' + esc(m.photo) + '" alt="">'
+      : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
+    return '<div class="guest">' +
+             '<div class="ghead">' + pic + '<span class="gname">' + esc(m.name) + '</span>' +
+               (m.mine && res.me ? '<span class="cedit">edit</span>' : '') + '</div>' +
+             (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
+           '</div>';
+  }
+  /* your own card first, everyone else totally random, fresh each load */
+  var mineRow = null, rest = [], unsorted = [];
+  rows.forEach(function(r){
+    if (r.mine){ mineRow = r; return; }
+    if (r.sex === 'M' || r.sex === 'F') rest.push(r); else unsorted.push(r);
   });
+  for (var s = rest.length - 1; s > 0; s--){
+    var j = Math.floor(Math.random() * (s + 1));
+    var tmp = rest[s]; rest[s] = rest[j]; rest[j] = tmp;
+  }
+  var html = '';
+  (mineRow ? [mineRow] : []).concat(rest).forEach(function(m){ html += card(m); });
+  if (res.admin && unsorted.length){
+    html += '<h2>Not sorted yet (only you see this)</h2>';
+    unsorted.forEach(function(m){ html += card(m); });
+  }
   $('view').innerHTML = html;
   if (fancy){
     var kids = $('view').children;
