@@ -37,17 +37,24 @@ h2{
   font-size:clamp(24px,4vw,30px);color:var(--rose-head);
   margin:38px 0 14px;
 }
-.guest{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:16px;padding:16px 18px;margin:0 0 14px;box-shadow:0 2px 12px rgba(228,114,106,.10)}
-.gpic{flex:0 0 auto;width:56px;height:56px;border-radius:50%;object-fit:cover;
+.guest{background:#fff;border-radius:16px;padding:16px 18px;margin:0 0 14px;box-shadow:0 2px 12px rgba(228,114,106,.10)}
+.ghead{display:flex;gap:14px;align-items:center}
+.gpic{flex:0 0 auto;width:72px;height:72px;border-radius:50%;object-fit:cover;
   background:var(--pill);border:2px solid rgba(228,114,106,.25)}
+img.gpic{cursor:zoom-in}
 .gpic.ph{display:flex;align-items:center;justify-content:center;font-family:var(--fdisp);
-  font-weight:700;font-size:22px;color:var(--rose-bold)}
-.gbody{flex:1 1 auto;min-width:0}
-.gname{font-weight:700;color:var(--rose-bold)}
-.gsoc{margin-left:10px;font-size:15px;word-break:break-all}
-.gsoc a{color:var(--rose);text-decoration:underline;text-underline-offset:3px}
-.gsoc span{color:var(--rose)}
-.gbio{margin:3px 0 0;font-size:15px;line-height:1.5;color:var(--rose);white-space:pre-wrap}
+  font-weight:700;font-size:28px;color:var(--rose-bold)}
+.gname{flex:1 1 auto;min-width:0;font-weight:700;font-size:20px;color:var(--rose-bold);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbio{margin:12px 0 0;font-size:15px;line-height:1.5;color:var(--rose);white-space:pre-wrap}
+.zoom{position:fixed;inset:0;background:rgba(40,20,20,.82);display:none;
+  align-items:center;justify-content:center;z-index:50;cursor:zoom-out;padding:24px}
+.zoom.on{display:flex}
+.zoom img{max-width:88vw;max-height:88vh;border-radius:16px;object-fit:contain;
+  box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.editlink{position:fixed;right:16px;bottom:16px;z-index:20;font-size:14px;font-weight:700;
+  color:var(--rose-bold);background:#fff;border:1px solid var(--pill);border-radius:999px;
+  padding:8px 16px;text-decoration:none;box-shadow:0 2px 10px rgba(228,114,106,.15);cursor:pointer}
 #msg{font-weight:600}
 
 /* the about-me gate */
@@ -132,6 +139,37 @@ function readPhoto(file){
   });
 }
 
+/* tap a photo to blow it up, tap again to close (like an IG profile pic) */
+var zoomEl = null;
+function zoomPic(src){
+  if (!zoomEl){
+    zoomEl = document.createElement('div');
+    zoomEl.className = 'zoom';
+    zoomEl.innerHTML = '<img alt="">';
+    zoomEl.addEventListener('click', function(){ zoomEl.classList.remove('on'); });
+    document.body.appendChild(zoomEl);
+  }
+  zoomEl.firstChild.src = src;
+  zoomEl.classList.add('on');
+}
+document.addEventListener('click', function(e){
+  var t = e.target;
+  if (t && t.classList && t.classList.contains('gpic') && t.tagName === 'IMG') zoomPic(t.src);
+});
+
+/* a guest can re-open their own form to edit it */
+function showEditLink(me){
+  var el = $('editlink');
+  if (!el){
+    el = document.createElement('a');
+    el.id = 'editlink'; el.className = 'editlink'; el.textContent = 'edit';
+    document.body.appendChild(el);
+  }
+  el.onclick = function(){ renderGate(me.name, me.bio, me.photo); };
+  el.style.display = '';
+}
+function hideEditLink(){ var el = $('editlink'); if (el) el.style.display = 'none'; }
+
 var K = '';
 try { K = new URLSearchParams(location.search).get('k') || ''; }catch(e){}
 var token = '';
@@ -173,26 +211,27 @@ function renderList(res){
       var pic = m.photo
         ? '<img class="gpic" src="' + esc(m.photo) + '" alt="">'
         : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
-      html += '<div class="guest">' + pic + '<div class="gbody">' +
-                '<span class="gname">' + esc(m.name) + '</span>' +
+      html += '<div class="guest">' +
+                '<div class="ghead">' + pic + '<span class="gname">' + esc(m.name) + '</span></div>' +
                 (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
-              '</div></div>';
+              '</div>';
     });
   });
   $('view').innerHTML = html;
+  if (res.me) showEditLink(res.me); else hideEditLink();
 }
 
-function renderGate(name){
+function renderGate(name, curBio, curPhoto){
   $('msg').textContent = '';
+  hideEditLink();
   var hi = name ? ('Hey ' + esc(String(name).trim().split(/\s+/)[0]) + ',') : 'Almost there,';
   $('view').innerHTML =
     '<div class="gate">' +
       '<p class="sub" style="font-size:16.5px;margin-bottom:18px">' + hi + ' we\'d love it if you\'d tell everyone a little about yourself, and you\'re welcome to attach a selfie if you\'d like.' +
         '<br><br>This will only be visible to people coming to the party, nobody else. We do this to make it easier to go up and talk to people.</p>' +
-      '<textarea class="bio" id="bio" placeholder="Who are you? Anything you want the room to know."></textarea>' +
+      '<textarea class="bio" id="bio" placeholder="Who are you? Anything you want the room to know.">' + esc(curBio || '') + '</textarea>' +
       '<label for="dname" style="margin-top:20px">Your name on the list</label>' +
       '<input class="dname" id="dname" type="text" maxlength="120" value="' + esc(name) + '">' +
-      '<p class="hint">This is how you\'ll show up. Change it if you\'d rather, like just your first name.</p>' +
       '<div class="photoRow" id="photoRow">' +
         '<button class="photoBtn" type="button" id="photoBtn">Add a photo of yourself</button>' +
         '<span class="hint">Optional</span>' +
@@ -242,6 +281,14 @@ function renderGate(name){
       })
       .catch(function(){ go.disabled = false; go.textContent = 'See the guest list'; $('gerr').textContent = 'Network error, try again.'; });
   });
+
+  if (curPhoto){
+    $('photoRow').innerHTML =
+      '<img class="photoPrev" src="' + esc(curPhoto) + '" alt="">' +
+      '<button class="photoBtn" type="button" id="photoChg">Change photo</button>' +
+      '<span class="hint">Optional</span>';
+    $('photoChg').addEventListener('click', pickPhoto);
+  }
 }
 
 if (!/^[0-9a-f]{32}$/.test(K) && !token){ denied(); }

@@ -393,7 +393,7 @@ async function handle(request, env, ctx) {
       if (!isAdmin) {
         var gk = String(p.k || '');
         if (!/^[0-9a-f]{32}$/.test(gk)) return json({ ok: false, error: 'invalid link' });
-        var gapp = await env.DB.prepare("SELECT name,bio FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(gk).first();
+        var gapp = await env.DB.prepare("SELECT * FROM applications WHERE sign_key=? AND status='ACCEPTED'").bind(gk).first();
         if (!gapp) return json({ ok: false, error: 'invalid link' });
         /* the about-me is the price of admission: no bio yet -> the page shows
            the form instead of the list */
@@ -408,7 +408,12 @@ async function handle(request, env, ctx) {
         out.push({ name: disp, sex: gsex,
                    bio: String(g.bio || ''), photo: g.guest_photo ? origin + '/img/' + g.guest_photo : '' });
       });
-      return json({ ok: true, admin: isAdmin, rows: out });
+      var me = (!isAdmin && gapp) ? {
+        name: String(gapp.list_name || '').trim() || String(gapp.name || ''),
+        bio: String(gapp.bio || ''),
+        photo: gapp.guest_photo ? origin + '/img/' + gapp.guest_photo : ''
+      } : null;
+      return json({ ok: true, admin: isAdmin, rows: out, me: me });
     }
 
     /* ---- guest fills in their "a little about me" (+ optional photo) via
