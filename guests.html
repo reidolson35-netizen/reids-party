@@ -197,13 +197,21 @@ function popStop(){
   setTimeout(function(){ d.remove(); }, 650);
 }
 
-function loadList(){
+/* the confetti + cascade show plays ONLY on the "See the guest list" press */
+var fancy = false;
+function loadList(withShow){
+  fancy = !!withShow;
   $('msg').textContent = '';
-  popStart();
+  if (fancy) popStart();
   var t0 = Date.now();
   fetch(EP, {method:'POST', body: JSON.stringify({action:'guestlist', k: K, token: token})})
     .then(function(r){ return r.json(); })
     .then(function(res){
+      if (!fancy){
+        if (!res.ok) return denied();
+        if (res.needsBio) return renderGate(res.name || '');
+        return renderList(res);
+      }
       /* let the confetti land, lift the old view away, then cascade the list in */
       setTimeout(function(){
         $('view').classList.add('out');
@@ -246,10 +254,12 @@ function renderList(res){
     });
   });
   $('view').innerHTML = html;
-  var kids = $('view').children;
-  for (var i = 0; i < kids.length; i++){
-    kids[i].style.animationDelay = Math.min(i*75, 1100) + 'ms';
-    kids[i].classList.add('arr');
+  if (fancy){
+    var kids = $('view').children;
+    for (var i = 0; i < kids.length; i++){
+      kids[i].style.animationDelay = Math.min(i*75, 1100) + 'ms';
+      kids[i].classList.add('arr');
+    }
   }
   var ce = $('view').querySelector('.cedit');
   if (ce && res.me) ce.addEventListener('click', function(){ renderGate(res.me.name, res.me.bio, res.me.photo); });
@@ -310,7 +320,7 @@ function renderGate(name, curBio, curPhoto){
       .then(function(r){ return r.json(); })
       .then(function(res){
         if (!res.ok){ go.disabled = false; go.textContent = 'See the guest list'; $('gerr').textContent = res.error || 'Something went wrong, try again.'; return; }
-        loadList();
+        loadList(true);
       })
       .catch(function(){ go.disabled = false; go.textContent = 'See the guest list'; $('gerr').textContent = 'Network error, try again.'; });
   });
