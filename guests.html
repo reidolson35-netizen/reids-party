@@ -278,7 +278,7 @@ function renderGate(name, curBio, curPhoto){
   var hi = name ? ('Hey ' + esc(String(name).trim().split(/\s+/)[0]) + ',') : 'Almost there,';
   $('view').innerHTML =
     '<div class="gate">' +
-      '<p class="sub" style="font-size:16.5px;margin-bottom:18px">' + hi + ' we\'d love it if you\'d write a little bio, specifically on how your friends would describe you. You\'re also welcome to attach a selfie if you\'d like.' +
+      '<p class="sub" style="font-size:16.5px;margin-bottom:18px">' + hi + ' we\'d love it if you\'d write a little bio, specifically on how your friends would describe you. You\'re also welcome to attach a selfie.' +
         '<br><br>This will be visible to people coming to the party, nobody else. We do this to make it easier to go up and talk to people.</p>' +
       '<textarea class="bio" id="bio" placeholder="What would your friends say about you?">' + esc(curBio || '') + '</textarea>' +
       '<label for="dname" style="margin-top:20px">Your name on the list</label>' +
