@@ -128,6 +128,12 @@ function links(s){
   }).join(' ');
 }
 function initial(name){ var t = String(name||'').trim(); return t ? t.charAt(0).toUpperCase() : '?'; }
+function shuffle(a){
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+}
 
 /* downscale a chosen photo to a small JPEG so it fits the worker's cap */
 function readPhoto(file){
@@ -245,15 +251,22 @@ function renderList(res){
              (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
            '</div>';
   }
-  /* your own card first, everyone else totally random, fresh each load */
-  var mineRow = null, rest = [], unsorted = [];
+  /* your own card first; everyone else random within their group, then the two
+     groups woven at their natural ratio - fresh each load, no same-sex pockets */
+  var mineRow = null, men = [], women = [], unsorted = [];
   rows.forEach(function(r){
     if (r.mine){ mineRow = r; return; }
-    if (r.sex === 'M' || r.sex === 'F') rest.push(r); else unsorted.push(r);
+    if (r.sex === 'M') men.push(r);
+    else if (r.sex === 'F') women.push(r);
+    else unsorted.push(r);
   });
-  for (var s = rest.length - 1; s > 0; s--){
-    var j = Math.floor(Math.random() * (s + 1));
-    var tmp = rest[s]; rest[s] = rest[j]; rest[j] = tmp;
+  shuffle(men); shuffle(women);
+  var rest = [], im = 0, iw = 0;
+  while (im < men.length || iw < women.length){
+    if (iw >= women.length) rest.push(men[im++]);
+    else if (im >= men.length) rest.push(women[iw++]);
+    else if (im * women.length <= iw * men.length) rest.push(men[im++]);
+    else rest.push(women[iw++]);
   }
   var html = '';
   (mineRow ? [mineRow] : []).concat(rest).forEach(function(m){ html += card(m); });
