@@ -399,14 +399,13 @@ async function handle(request, env, ctx) {
            the form instead of the list */
         if (!String(gapp.bio || '').trim()) return json({ ok: true, needsBio: true, name: String(gapp.name || '') });
       }
-      var gres = await env.DB.prepare("SELECT name,socials,sex,bio,guest_photo FROM applications WHERE status='ACCEPTED' ORDER BY name COLLATE NOCASE").all();
+      var gres = await env.DB.prepare("SELECT * FROM applications WHERE status='ACCEPTED' ORDER BY name COLLATE NOCASE").all();
       var out = [];
       (gres.results || []).forEach(function (g) {
         var gsex = (g.sex === 'M' || g.sex === 'F') ? g.sex : '';
         if (!gsex && !isAdmin) return;
-        var parts = String(g.name || '').trim().split(/\s+/);
-        var disp = parts[0] + (parts.length > 1 ? ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.' : '');
-        out.push({ name: disp, socials: String(g.socials || ''), sex: gsex,
+        var disp = String(g.list_name || '').trim() || String(g.name || '').trim();
+        out.push({ name: disp, sex: gsex,
                    bio: String(g.bio || ''), photo: g.guest_photo ? origin + '/img/' + g.guest_photo : '' });
       });
       return json({ ok: true, admin: isAdmin, rows: out });
@@ -424,6 +423,9 @@ async function handle(request, env, ctx) {
       if (!bapp) return json({ ok: false, error: 'invalid link' });
       var bio = String(p.bio || '').trim().slice(0, 2000);
       if (!bio) return json({ ok: false, error: 'Please write a little about yourself.' });
+      var lname = String(p.name || '').trim().slice(0, 120) || null;
+      /* no migration framework here: make sure the column exists, ignore "already exists" */
+      try { await env.DB.prepare('ALTER TABLE applications ADD COLUMN list_name TEXT').run(); } catch (e) {}
       var photoKey = null;
       var pdata = p.photo && String(p.photo.data || '');
       if (pdata) {
@@ -438,11 +440,11 @@ async function handle(request, env, ctx) {
         }
       }
       if (photoKey) {
-        await env.DB.prepare('UPDATE applications SET bio=?, guest_photo=? WHERE n=?').bind(bio, photoKey, bapp.n).run();
+        await env.DB.prepare('UPDATE applications SET bio=?, list_name=?, guest_photo=? WHERE n=?').bind(bio, lname, photoKey, bapp.n).run();
         /* drop the previous photo so re-submits don't orphan rows */
         if (bapp.guest_photo) { try { await env.DB.prepare('DELETE FROM images WHERE key=?').bind(bapp.guest_photo).run(); } catch (e) {} }
       } else {
-        await env.DB.prepare('UPDATE applications SET bio=? WHERE n=?').bind(bio, bapp.n).run();
+        await env.DB.prepare('UPDATE applications SET bio=?, list_name=? WHERE n=?').bind(bio, lname, bapp.n).run();
       }
       return json({ ok: true });
     }

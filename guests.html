@@ -59,6 +59,10 @@ textarea.bio{
   color:#7a4b46;font-family:var(--fsans);font-size:16px;line-height:1.5;resize:vertical;outline:none;
 }
 textarea.bio:focus{border-color:var(--rose-bold)}
+input.dname{width:100%;padding:13px 16px;box-sizing:border-box;background:#fff;
+  border:2px solid var(--pill);border-radius:12px;color:#7a4b46;
+  font-family:var(--fsans);font-size:16px;outline:none;margin:0}
+input.dname:focus{border-color:var(--rose-bold)}
 .photoRow{display:flex;align-items:center;gap:14px;margin:18px 0 6px}
 .photoBtn{
   appearance:none;cursor:pointer;font-family:var(--fsans);font-weight:700;font-size:14px;
@@ -80,7 +84,7 @@ textarea.bio:focus{border-color:var(--rose-bold)}
 <body>
 <main>
   <h1>The Guest List</h1>
-  <p class="sub">Reid&rsquo;s Parties - September 5th, 2026</p>
+  <p class="sub">September 5th, 2026</p>
   <p class="note">(visible only to approved guests)</p>
   <div id="msg">Loading&hellip;</div>
   <div id="view"></div>
@@ -171,7 +175,6 @@ function renderList(res){
         : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
       html += '<div class="guest">' + pic + '<div class="gbody">' +
                 '<span class="gname">' + esc(m.name) + '</span>' +
-                (m.socials ? '<span class="gsoc">' + links(m.socials) + '</span>' : '') +
                 (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
               '</div></div>';
     });
@@ -184,10 +187,12 @@ function renderGate(name){
   var hi = name ? ('Hey ' + esc(String(name).trim().split(/\s+/)[0]) + ',') : 'Almost there,';
   $('view').innerHTML =
     '<div class="gate">' +
-      '<p class="sub" style="margin-bottom:18px">' + hi + ' we\'d love it if you\'d tell everyone a little about yourself, and you\'re welcome to attach a selfie if you\'d like.' +
+      '<p class="sub" style="font-size:16.5px;margin-bottom:18px">' + hi + ' we\'d love it if you\'d tell everyone a little about yourself, and you\'re welcome to attach a selfie if you\'d like.' +
         '<br><br>This will only be visible to people coming to the party, nobody else. We do this to make it easier to go up and talk to people.</p>' +
-      '<label for="bio">A little bit about me</label>' +
-      '<textarea class="bio" id="bio" placeholder="Who are you? What are you into? Anything you want the room to know."></textarea>' +
+      '<textarea class="bio" id="bio" placeholder="Who are you? Anything you want the room to know."></textarea>' +
+      '<label for="dname" style="margin-top:20px">Your name on the list</label>' +
+      '<input class="dname" id="dname" type="text" maxlength="120" value="' + esc(name) + '">' +
+      '<p class="hint">This is how you\'ll show up. Change it if you\'d rather, like just your first name.</p>' +
       '<div class="photoRow" id="photoRow">' +
         '<button class="photoBtn" type="button" id="photoBtn">Add a photo of yourself</button>' +
         '<span class="hint">Optional</span>' +
@@ -227,7 +232,7 @@ function renderGate(name){
     var bio = ($('bio').value || '').trim();
     if (!bio){ $('gerr').textContent = 'Write a little about yourself first.'; $('bio').focus(); return; }
     go.disabled = true; go.textContent = 'Saving…';
-    var body = {action:'guestbio', k: K, bio: bio};
+    var body = {action:'guestbio', k: K, bio: bio, name: ($('dname').value || '').trim()};
     if (photo) body.photo = {type: photo.type, data: photo.data};
     fetch(EP, {method:'POST', body: JSON.stringify(body)})
       .then(function(r){ return r.json(); })
