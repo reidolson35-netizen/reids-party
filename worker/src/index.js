@@ -406,6 +406,7 @@ async function handle(request, env, ctx) {
         if (!gsex && !isAdmin) return;
         var disp = String(g.list_name || '').trim() || String(g.name || '').trim();
         out.push({ name: disp, sex: gsex,
+                   mine: (!isAdmin && gapp && g.n === gapp.n) ? 1 : undefined,
                    bio: String(g.bio || ''), photo: g.guest_photo ? origin + '/img/' + g.guest_photo : '' });
       });
       var me = (!isAdmin && gapp) ? {

@@ -52,9 +52,13 @@ img.gpic{cursor:zoom-in}
 .zoom.on{display:flex}
 .zoom img{max-width:88vw;max-height:88vh;border-radius:16px;object-fit:contain;
   box-shadow:0 10px 40px rgba(0,0,0,.4)}
-.editlink{position:fixed;right:16px;bottom:16px;z-index:20;font-size:14px;font-weight:700;
-  color:var(--rose-bold);background:#fff;border:1px solid var(--pill);border-radius:999px;
-  padding:8px 16px;text-decoration:none;box-shadow:0 2px 10px rgba(228,114,106,.15);cursor:pointer}
+.cedit{flex:0 0 auto;font-size:14px;font-weight:700;color:var(--rose-head);cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
+/* confetti while the list loads */
+.pop{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.pop i{position:absolute;top:-18px;width:10px;height:16px;border-radius:3px;opacity:.9;
+  animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
 #msg{font-weight:600}
 
 /* the about-me gate */
@@ -157,19 +161,6 @@ document.addEventListener('click', function(e){
   if (t && t.classList && t.classList.contains('gpic') && t.tagName === 'IMG') zoomPic(t.src);
 });
 
-/* a guest can re-open their own form to edit it */
-function showEditLink(me){
-  var el = $('editlink');
-  if (!el){
-    el = document.createElement('a');
-    el.id = 'editlink'; el.className = 'editlink'; el.textContent = 'edit';
-    document.body.appendChild(el);
-  }
-  el.onclick = function(){ renderGate(me.name, me.bio, me.photo); };
-  el.style.display = '';
-}
-function hideEditLink(){ var el = $('editlink'); if (el) el.style.display = 'none'; }
-
 var K = '';
 try { K = new URLSearchParams(location.search).get('k') || ''; }catch(e){}
 var token = '';
@@ -180,16 +171,38 @@ function denied(){
   $('msg').textContent = 'This page is invitation-only. Approved guests get a private link by text.';
 }
 
+var POP_COLORS = ['#e4726a','#efa79f','#f7cbc6','#ffffff','#e79b93'];
+function popStart(){
+  if ($('pop')) return;
+  var d = document.createElement('div'); d.id = 'pop'; d.className = 'pop';
+  for (var i = 0; i < 28; i++){
+    var s = document.createElement('i');
+    s.style.left = (Math.random()*100) + '%';
+    s.style.background = POP_COLORS[i % POP_COLORS.length];
+    s.style.animationDuration = (1.4 + Math.random()*1.2) + 's';
+    s.style.animationDelay = (Math.random()*0.7) + 's';
+    d.appendChild(s);
+  }
+  document.body.appendChild(d);
+}
+function popStop(){ var d = $('pop'); if (d) d.remove(); }
+
 function loadList(){
-  $('msg').textContent = 'Loading…';
+  $('msg').textContent = '';
+  popStart();
+  var t0 = Date.now();
   fetch(EP, {method:'POST', body: JSON.stringify({action:'guestlist', k: K, token: token})})
     .then(function(r){ return r.json(); })
     .then(function(res){
-      if (!res.ok) return denied();
-      if (res.needsBio) return renderGate(res.name || '');
-      renderList(res);
+      /* let the confetti land before the reveal */
+      setTimeout(function(){
+        popStop();
+        if (!res.ok) return denied();
+        if (res.needsBio) return renderGate(res.name || '');
+        renderList(res);
+      }, Math.max(0, 900 - (Date.now() - t0)));
     })
-    .catch(function(){ $('msg').textContent = 'Network error - try again.'; });
+    .catch(function(){ popStop(); $('msg').textContent = 'Network error - try again.'; });
 }
 
 function renderList(res){
@@ -212,18 +225,19 @@ function renderList(res){
         ? '<img class="gpic" src="' + esc(m.photo) + '" alt="">'
         : '<div class="gpic ph">' + esc(initial(m.name)) + '</div>';
       html += '<div class="guest">' +
-                '<div class="ghead">' + pic + '<span class="gname">' + esc(m.name) + '</span></div>' +
+                '<div class="ghead">' + pic + '<span class="gname">' + esc(m.name) + '</span>' +
+                  (m.mine && res.me ? '<span class="cedit">edit</span>' : '') + '</div>' +
                 (m.bio ? '<p class="gbio">' + esc(m.bio) + '</p>' : '') +
               '</div>';
     });
   });
   $('view').innerHTML = html;
-  if (res.me) showEditLink(res.me); else hideEditLink();
+  var ce = $('view').querySelector('.cedit');
+  if (ce && res.me) ce.addEventListener('click', function(){ renderGate(res.me.name, res.me.bio, res.me.photo); });
 }
 
 function renderGate(name, curBio, curPhoto){
   $('msg').textContent = '';
-  hideEditLink();
   var hi = name ? ('Hey ' + esc(String(name).trim().split(/\s+/)[0]) + ',') : 'Almost there,';
   $('view').innerHTML =
     '<div class="gate">' +
