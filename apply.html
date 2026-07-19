@@ -18,6 +18,22 @@
 <meta name="twitter:image" content="https://reidsparty.com/og.png">
 <meta name="apple-mobile-web-app-title" content="Reid's Parties">
 <meta name="theme-color" content="#fbf4c7">
+<!-- Meta Pixel Code. Fires ONLY SubmitApplication: on submit success (see submit())
+     and on load of the ?share success state. No PageView by design (Reid: track the
+     conversion, not visits). No noscript fallback: the form needs JS anyway. -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s);}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2095291641198683');
+if(new URLSearchParams(location.search).has('share'))fbq('track','SubmitApplication');
+</script>
+<!-- End Meta Pixel Code -->
 <script>
 /* first-touch source: remember how they originally found us (src= tag or external referrer) */
 try{
@@ -812,6 +828,7 @@ function submit(){
           new Image().src='https://reidsparty-api.reid-f55.workers.dev/hit?p='+encodeURIComponent('applied'+(_ab==='a'||_ab==='b'?'#'+_ab:''))+'&r='+encodeURIComponent(_src);
         }catch(e){}
         show(TOTAL + 1);
+        try{ fbq('track','SubmitApplication'); }catch(e){}
         /* success screen is the only state marked in the URL (ad tools can match on it) */
         try{ history.replaceState(null, '', '?share'); }catch(e){}
       } else {
