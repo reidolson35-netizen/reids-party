@@ -160,7 +160,7 @@ textarea.noteBox:focus{border-style:solid}
         <button class="btn ghost" id="lockBtn">Lock</button>
       </div>
     </div>
-    <div class="statRow"><div class="statNum" id="total">0</div><div class="statLbl">Total applicants</div><div class="statNum sm" id="ttN">0</div><div class="statLbl">TikTok</div><div class="statNum sm" id="igN">0</div><div class="statLbl">Instagram</div></div>
+    <div class="statRow"><div class="statNum" id="total">0</div><div class="statLbl">Total applicants</div><div class="statNum sm" id="ttN">0</div><div class="statLbl">TikTok</div><div class="statNum sm" id="igN">0</div><div class="statLbl">Instagram</div><div class="statNum sm" id="qrN">0</div><div class="statLbl">QR</div><div class="statNum sm" id="otherN">0</div><div class="statLbl">Direct / other</div></div>
     <div class="tabs" id="tabs"></div>
     <input class="inp" id="search" type="search" placeholder="Search name, socials, answers…">
     <div id="msg"></div>
@@ -317,8 +317,15 @@ function qa(label, val, dim){
 function render(){
   renderTabs();
   $('total').textContent = rows.length;
-  $('ttN').textContent = rows.filter(function(r){ return srcName(r) === 'tiktok'; }).length;
-  $('igN').textContent = rows.filter(function(r){ return srcName(r).indexOf('instagram') >= 0; }).length;
+  /* source counts follow the active tab, so ACCEPTED shows where the accepted came from */
+  var tabRows = activeTab === 'ALL' ? rows : rows.filter(function(r){ return (r.status||'PENDING') === activeTab; });
+  var tt = tabRows.filter(function(r){ return srcName(r) === 'tiktok'; }).length;
+  var ig = tabRows.filter(function(r){ return srcName(r).indexOf('instagram') >= 0; }).length;
+  var qr = tabRows.filter(function(r){ return srcName(r) === 'qr flier'; }).length;
+  $('ttN').textContent = tt;
+  $('igN').textContent = ig;
+  $('qrN').textContent = qr;
+  $('otherN').textContent = tabRows.length - tt - ig - qr;
   var list = rows.filter(matches);
   var c = $('cards');
   c.innerHTML = '';
