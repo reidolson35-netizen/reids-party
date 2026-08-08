@@ -156,7 +156,7 @@ class Handler(SimpleHTTPRequestHandler):
             if not sig.startswith("data:image/png;base64,"):
                 return self._json({"ok": False, "error": "Missing signature."})
             if p.get("agreed") is not True:
-                return self._json({"ok": False, "error": "You have to agree to the waiver."})
+                return self._json({"ok": False, "error": "You have to agree to the code of conduct."})
             with LOCK:
                 n = len(WAIVERS) + 1
                 WAIVERS.append({"n": n, "ts": str(p.get("ts") or ""), "name": name,

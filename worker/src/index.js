@@ -28,11 +28,11 @@ var REQUIRED = ['name', 'socials', 'age', 'why', 'working', 'contrarian', 'hobby
 function waiverMsg(link) {
   return "You've been accepted.\n\n" +
     "We reviewed your application for Reid's Parties, and we think you're a great fit!\n\n" +
-    'One last thing: Please fill out this Expectation waiver.\n\n' + link + '\n\n' +
+    'One last thing: Please fill out this code of conduct.\n\n' + link + '\n\n' +
     'This is to keep our parties friendly and safe.';
 }
 function waiverThanksMsg() {
-  return "Thanks! We got your waiver. We'll send you the address on September 4th. It will be in Central Austin.";
+  return "Thanks! We got your signed code of conduct. We'll send you the address on September 4th. It will be in Central Austin.";
 }
 var IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 /* Shared IPs are normal here (venue wifi at the parties, dorms), so the tight
@@ -487,7 +487,7 @@ async function handle(request, env, ctx) {
       if (wsig.indexOf('data:image/png;base64,') !== 0 || wsig.length > 400000) {
         return json({ ok: false, error: 'Missing signature.' });
       }
-      if (p.agreed !== true) return json({ ok: false, error: 'You have to agree to the waiver.' });
+      if (p.agreed !== true) return json({ ok: false, error: 'You have to agree to the code of conduct.' });
       /* ip+ua stored on purpose: they are the evidence this signature is real */
       var wrow = await env.DB.prepare(
         'INSERT INTO waivers(ts,name,sig,ip,ua,app_n) VALUES(?,?,?,?,?,?) RETURNING n'

@@ -166,7 +166,7 @@ textarea.noteBox:focus{border-style:solid}
     <div id="msg"></div>
     <div id="cards"></div>
     <div id="empty" class="panel" style="display:none">No applications yet</div>
-    <div class="statRow" style="margin-top:38px"><div class="statNum" id="wtotal">0</div><div class="statLbl">Signed waivers</div></div>
+    <div class="statRow" style="margin-top:38px"><div class="statNum" id="wtotal">0</div><div class="statLbl">Signed codes of conduct</div></div>
     <div id="waivers"></div>
   </section>
 
@@ -339,7 +339,7 @@ function render(){
         '<span class="cnum">№ ' + pad(r.n||0) + '</span>' +
         '<span class="cname">' + esc(r.name) + '</span>' +
         '<span class="cage">' + esc(r.age) + '</span>' +
-        (r.sign_key ? '<span style="color:var(--' + (r.signed?'ok':'bad') + ');font-weight:800;font-size:12px;letter-spacing:.04em">' + (r.signed ? 'SIGNED WAIVER' : 'HAS NOT SIGNED WAIVER') + '</span>' : '') +
+        (r.sign_key ? '<span style="color:var(--' + (r.signed?'ok':'bad') + ');font-weight:800;font-size:12px;letter-spacing:.04em">' + (r.signed ? 'SIGNED CODE OF CONDUCT' : 'HAS NOT SIGNED CODE OF CONDUCT') + '</span>' : '') +
         '<span class="grow"></span>' +
         '<select class="status sexSel" title="Guest list group">' +
           '<option value=""' + (!r.sex?' selected':'') + '>&mdash;</option>' +
@@ -362,7 +362,7 @@ function render(){
       (r.hobby ? qa('Childhood obsessions', esc(r.hobby)) : '') +
       (r.want ? qa('What they want', esc(r.want)) : '') +
       (r.ref ? qa('Found us via', esc(fmtRef(r.ref))) : '') +
-      (r.sign_key ? qa('Waiver',
+      (r.sign_key ? qa('Code of conduct',
         '<a href="waiver.html?k=' + esc(r.sign_key) + '" target="_blank" rel="noopener">signing link</a>' +
         (st === 'ACCEPTED'
           ? ' <button class="prt sendTxt" type="button">' + (r.notified === 1 ? 'Resend approval text' : 'Send approval text') + '</button>' +
@@ -565,14 +565,14 @@ function renderWaivers(){
       '<div class="ts">' + fmtTs(r.ts) + (r.app_n ? ' &middot; application № ' + pad(r.app_n) : '') + (r.ip ? ' &middot; ' + esc(r.ip) : '') + '</div>';
     card.querySelector('button.prt').addEventListener('click', function(){ printWaiver(r); });
     card.querySelector('button.del').addEventListener('click', function(){
-      if (!window.confirm('Delete signed waiver № ' + pad(r.n||0) + ' - ' + (r.name||'') + '?\nThis permanently removes it and cannot be undone.')) return;
+      if (!window.confirm('Delete signed code of conduct № ' + pad(r.n||0) + ' - ' + (r.name||'') + '?\nThis permanently removes it and cannot be undone.')) return;
       fetch(ENDPOINT, {method:'POST', body: JSON.stringify({action:'delwaiver', token: token, n: r.n})})
         .then(function(x){ return x.json(); })
         .then(function(res){
           if (res.ok){ wrows = wrows.filter(function(x){ return x.n !== r.n; }); renderWaivers(); }
-          else $('msg').textContent = 'Waiver delete failed: ' + (res.error||'unknown');
+          else $('msg').textContent = 'Delete failed: ' + (res.error||'unknown');
         })
-        .catch(function(){ $('msg').textContent = 'Network error - waiver not deleted.'; });
+        .catch(function(){ $('msg').textContent = 'Network error - nothing was deleted.'; });
     });
     c.appendChild(card);
   });
