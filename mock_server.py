@@ -224,8 +224,8 @@ class Handler(SimpleHTTPRequestHandler):
             age = int(str(a.get("age", "")).strip())
         except ValueError:
             age = 0
-        if not (20 <= age <= 26):
-            return self._json({"ok": False, "error": "Must be between 20-26."})
+        if not (20 <= age <= 28):
+            return self._json({"ok": False, "error": "Must be between 20-28."})
         why = str(a.get("why", "")).strip()
 
         with LOCK:

@@ -137,16 +137,16 @@ async function activeStep() {
   await typeIntoActive('Jeri Athan');      await clickNext();           // 1 name
   await typeIntoActive('instagram.com/_reidolson'); await clickNext();  // 2 socials
 
-  // 3 age - out-of-band gates (20-26)
+  // 3 age - out-of-band gates (20-28)
   await typeIntoActive('19');
   await sleep(100);
   const gateErr = await eval_(`document.querySelector('.step.on .err').textContent`);
   const gateDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
   check('under-20 blocks NEXT with message', gateDisabled && /20/.test(gateErr), JSON.stringify(gateErr));
-  await typeIntoActive('27');
+  await typeIntoActive('29');
   await sleep(100);
   const overDisabled = await eval_(`(function(){var b=document.querySelectorAll('.step.on .nav .btn');return b[b.length-1].disabled;})()`);
-  check('over-26 blocks NEXT', overDisabled === true);
+  check('over-28 blocks NEXT', overDisabled === true);
   await typeIntoActive('24'); await clickNext();
 
   // 4 why - no length limit anymore

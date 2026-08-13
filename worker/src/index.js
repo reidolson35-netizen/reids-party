@@ -189,7 +189,7 @@ async function submit(env, ctx, p, rawBody, ip) {
   }
   var age = parseInt(a.age, 10);
   if (!(age >= 1 && age <= 120)) return json({ ok: false, error: 'Enter your real age.' });
-  if (!(age >= 20 && age <= 26)) return json({ ok: false, error: 'Must be between 20-26.' });
+  if (!(age >= 20 && age <= 28)) return json({ ok: false, error: 'Must be between 20-28.' });
   var why = String(a.why).trim();
 
   /* validation passed - only now does it count against the real caps */

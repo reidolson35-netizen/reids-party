@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Apply - Reid's Parties, Austin, TX</title>
-<meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. Ages 20-26.">
+<meta name="description" content="Apply to Reid's Parties, application-based singles parties in Austin, Texas. No fees. Ages 20-28.">
 <link rel="canonical" href="https://reidsparty.com/apply.html">
 <meta property="og:title" content="Apply to Reid's Parties">
-<meta property="og:description" content="Apply to Reid's Parties, vetted singles parties in Austin. No fees. Ages 20-26.">
+<meta property="og:description" content="Apply to Reid's Parties, vetted singles parties in Austin. No fees. Ages 20-28.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://reidsparty.com/apply.html">
 <meta property="og:site_name" content="Reid's Parties">
@@ -235,7 +235,7 @@ var ENDPOINT = CFG.ENDPOINT || (LOCAL ? '/exec' : '');
 var QUESTIONS = [
   {id:'name',      type:'text',     label:'What is your name?', req:true, ph:'First and last'},
   {id:'socials',   type:'social',   label:'What’s your handle?', helper:'Public, if possible. Any platform is fine, just something that shows who you are.', req:true, ph:'yourhandle'},
-  {id:'age',       type:'age',      label:'What is your age?', helper:'Must be between 20-26.', req:true, ph:'20-26'},
+  {id:'age',       type:'age',      label:'What is your age?', helper:'Must be between 20-28.', req:true, ph:'20-28'},
   {id:'why',       type:'textarea', label:'Provide 1 (or a few) reasons why you want to come to our party', req:true},
   {id:'working',   type:'textarea', label:'What are you working on?', helper:'Go into as much detail as you want.', req:true, files:true, max:5},
   {id:'contrarian',type:'textarea', label:'What is something you think is true that most people would disagree with you about?', helper:'No wrong answers, seriously.', req:true},
@@ -290,7 +290,7 @@ function validate(q){
       if (!v) return {ok:false, msg:''};
       var n = parseInt(v,10);
       if (isNaN(n) || n < 1 || n > 120) return {ok:false, msg:'Enter your real age.'};
-      if (n < 20 || n > 26) return {ok:false, msg:'Must be between 20-26 to apply.'};
+      if (n < 20 || n > 28) return {ok:false, msg:'Must be between 20-28 to apply.'};
       return {ok:true};
     case 'social':
       if (socState.err) return {ok:false, msg:socState.err};
