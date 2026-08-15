@@ -107,6 +107,22 @@ async function activeStep() {
   await send('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 2, mobile: true
   });
+  /* Record Meta pixel calls without touching the network. The real snippet starts
+     with `if(f.fbq)return;`, so defining window.fbq first makes it a no-op and every
+     fbq() lands in __fbq. Also tee the submit POST body so the browser eventID can be
+     compared with the eid the worker will send to the Conversions API. */
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.__fbq = [];
+    window.fbq = function(){ window.__fbq.push(Array.prototype.slice.call(arguments)); };
+    window.fbq.queue = []; window.fbq.loaded = true; window.fbq.version = '2.0';
+    window._fbq = window.fbq;
+    (function(orig){
+      window.fetch = function(u, o){
+        try { if (o && o.body) window.__lastBody = o.body; } catch(e){}
+        return orig.apply(this, arguments);
+      };
+    })(window.fetch);
+  ` });
   await send('Page.navigate', { url: SITE + 'apply.html' });
   await waitFor(`document.querySelectorAll('.step').length === 11`, 10000, 'app built');
   await sleep(700); // fonts
@@ -186,6 +202,18 @@ async function activeStep() {
   check('success screen has Share button', hasShare === true);
   await shot('/tmp/rp_success.png');
 
+  // -- Meta pixel: the conversion must be booked exactly once --------------------
+  const fbCalls = JSON.parse(await eval_(`JSON.stringify(window.__fbq || [])`));
+  const subs = fbCalls.filter(a => a[0] === 'track' && a[1] === 'SubmitApplication');
+  check('pixel books SubmitApplication exactly once', subs.length === 1,
+    JSON.stringify(fbCalls.map(a => a[0] + ':' + a[1])));
+  const pixelEid = subs[0] && subs[0][3] && subs[0][3].eventID;
+  check('conversion carries an eventID (dedupes browser vs Conversions API)', !!pixelEid, String(pixelEid));
+  const bodyEid = await eval_(`(function(){ try { return JSON.parse(window.__lastBody).eid; } catch(e){ return ''; } })()`);
+  check('eid sent to the worker matches the pixel eventID', !!bodyEid && bodyEid === pixelEid,
+    bodyEid + ' vs ' + pixelEid);
+  check('pixel fires with ?share in the URL', (await eval_(`location.search`)) === '?share');
+
   // -- verify through the API ----------------------------------------------------
   const list = await (await fetch(EXEC + '?action=list&token=' + encodeURIComponent(TOKEN), {redirect: 'follow'})).json();
   const row = (list.rows || []).filter(r => r.name === 'Jeri Athan').pop();
@@ -203,6 +231,15 @@ async function activeStep() {
     const after = await (await fetch(EXEC + '?action=list&token=' + encodeURIComponent(TOKEN))).json();
     check('deleted row no longer listed', !(after.rows||[]).some(function(x){ return x.n === row.n; }));
   }
+
+  /* Reloading the thank-you page (or backing into it) must NOT book a second
+     conversion: replaceState leaves ?share in the URL long after the real submit. */
+  await send('Page.navigate', { url: SITE + 'apply.html?share' });
+  await waitFor(`document.querySelectorAll('.step').length === 11`, 10000, 'app rebuilt on ?share');
+  const reloadCalls = JSON.parse(await eval_(`JSON.stringify(window.__fbq || [])`));
+  check('reloading the thank-you page books no second conversion',
+    reloadCalls.filter(a => a[0] === 'track' && a[1] === 'SubmitApplication').length === 0,
+    JSON.stringify(reloadCalls.map(a => a[0] + ':' + a[1])));
 
   const fails = results.filter(r => !r.ok).length;
   console.log('\n' + (fails ? 'E2E: ' + fails + ' FAILURE(S)' : 'E2E: ALL ' + results.length + ' CHECKS PASSED'));

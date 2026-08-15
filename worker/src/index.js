@@ -269,9 +269,11 @@ async function submit(env, ctx, p, rawBody, ip) {
     );
   }
 
-  /* server-side Meta conversion (Conversions API; no Meta code runs in the browser).
+  /* server-side Meta conversion (Conversions API; the browser pixel fires the same
+     event, so this is the ad-blocker-proof copy, not a second conversion).
      Same stance as TikTok: ip/ua/fbclid only - never applicant email or phone.
-     URL carries ?share so Reid's "URL contains share" custom conversion matches.
+     event_name and event_id MUST match what apply.html sends, or Meta counts the
+     application twice. URL carries ?share so a "URL contains share" rule still matches.
      Inert until META_PIXEL_ID + META_TOKEN secrets are set. */
   if (env.META_PIXEL_ID && env.META_TOKEN) {
     var fbUser = { client_ip_address: ip, client_user_agent: String(p.ua || '').slice(0, 400) };
@@ -284,7 +286,8 @@ async function submit(env, ctx, p, rawBody, ip) {
         body: JSON.stringify({
           access_token: env.META_TOKEN,
           data: [{
-            event_name: 'Lead',
+            event_name: 'SubmitApplication',
+            event_id: String(p.eid || ''),
             event_time: Math.floor(Date.now() / 1000),
             action_source: 'website',
             event_source_url: 'https://reidsparty.com/apply.html?share',
