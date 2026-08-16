@@ -1,5 +1,13 @@
-# local-only secrets and data — never push these
+# local-only secrets and data - never push these
 token.txt
+
+# Secrets - never commit
+.env
+.env.*
+*.key
+*.pem
+*_secret*
+*credentials*
 apps-script/Code.local.gs
 responses.json
 uploads/
